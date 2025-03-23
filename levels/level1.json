@@ -1,0 +1,35 @@
+{
+    "level": 1,
+    "background": "assets/backgrounds/3.png",
+    "player": {
+      "spawn_x": 100,
+      "spawn_y": 300,
+      "hp": 100,
+      "weapon": "sword",
+      "image": "assets/sprites/knight_attack_01.png"
+    },
+    "enemies": [
+      {
+        "type": "knight_walk",
+        "hp": 50,
+        "damage": 10,
+        "speed": 2,
+        "spawn_x": 600,
+        "spawn_y": 400
+      },
+      {
+        "type": "sprite Sheet - Blue Idle",
+        "hp": 30,
+        "damage": 5,
+        "speed": 3,
+        "spawn_x": 800,
+        "spawn_y": 450
+      }
+    ],
+    "rewards": {
+      "gold": 100,
+      "exp": 50
+    },
+    "objective": "Defeat all enemies to win!"
+  }
+  
