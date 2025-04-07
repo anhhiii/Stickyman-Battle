@@ -32,6 +32,34 @@ def draw_text(text, font, color, surface, x, y):
     text_rect = text_obj.get_rect(center=(x, y))
     surface.blit(text_obj, text_rect)
 
+# Hàm tạo menu chọn màn chơi
+def level_selection():
+    """Hiển thị menu chọn màn chơi."""
+    selected_level = None
+    while selected_level is None:
+        screen.blit(background, (0, 0))
+        draw_text("SELECT LEVEL", title_font, (255, 255, 0), screen, WIDTH // 2, HEIGHT // 4)
+        draw_text("1. Level 1", menu_font, (255, 255, 255), screen, WIDTH // 2, HEIGHT // 2 - 50)
+        draw_text("2. Level 2", menu_font, (255, 255, 255), screen, WIDTH // 2, HEIGHT // 2)
+        draw_text("3. Back to Menu", menu_font, (255, 255, 255), screen, WIDTH // 2, HEIGHT // 2 + 50)
+
+        pygame.display.flip()
+
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_1:
+                    selected_level = "level1.json"
+                elif event.key == pygame.K_2:
+                    selected_level = "level2.json"
+                elif event.key == pygame.K_3:
+                    return None  # Quay lại menu
+
+    return selected_level
+
+
 # Hàm tạo menu chính
 def main_menu():
     """Hiển thị menu chính."""
@@ -67,4 +95,5 @@ def game_loop():
 
 # Chạy game
 main_menu()  # Bắt đầu từ menu
+selected_level = level_selection()  # Vào chọn màn
 game_loop()  # Sau đó vào game
