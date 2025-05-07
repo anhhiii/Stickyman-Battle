@@ -9,7 +9,7 @@ class BattleBase:
         self.running = True
         self.level_name = level_name
 
-        self.tile_size = 16  # map của bạn là 16x16
+        self.tile_size = 16  # mỗi ô vuông là 16x16
         self.tile_layers = []
         self.object_layers = []
 
@@ -50,13 +50,23 @@ class BattleBase:
 
             image_elem = root.find('image')
             img_source = image_elem.get('source')
+
+            if img_source.startswith("assets/"):
+                img_full_path = os.path.join(project_root, img_source)
+            else:
+                img_full_path = os.path.join(os.path.dirname(tsx_path), img_source)
+
+            img_full_path = os.path.normpath(img_full_path)
+
+            if not os.path.isfile(img_full_path):
+                raise FileNotFoundError(f"Không tìm thấy ảnh tileset: {img_full_path}")
+
             img_width = int(image_elem.get('width'))
             img_height = int(image_elem.get('height'))
 
             tilewidth = int(root.get('tilewidth'))
             tileheight = int(root.get('tileheight'))
 
-            img_full_path = os.path.join(os.path.dirname(tsx_path), img_source)
             image = pygame.image.load(img_full_path).convert_alpha()
 
             tiles_x = img_width // tilewidth
@@ -69,6 +79,7 @@ class BattleBase:
                     tile.blit(image, (0, 0), (x * tilewidth, y * tileheight, tilewidth, tileheight))
                     self.tiles[firstgid + id_offset] = tile
                     id_offset += 1
+
 
     def draw(self):
         for layer in self.tile_layers:
