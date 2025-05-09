@@ -80,7 +80,6 @@ class BattleBase:
                     self.tiles[firstgid + id_offset] = tile
                     id_offset += 1
 
-
     def draw(self):
         for layer in self.tile_layers:
             for idx, tile in enumerate(layer):
