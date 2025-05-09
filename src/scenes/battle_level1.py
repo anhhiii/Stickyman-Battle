@@ -2,6 +2,7 @@ import pygame
 from src.scenes.battle_base import BattleBase
 from src.components.music_manager import MusicManager
 from src.entities.knight import Knight
+from src.entities.slime import Slime
 import os
 
 class BattleLevel1(BattleBase):
@@ -14,12 +15,16 @@ class BattleLevel1(BattleBase):
         
         self.music_manager = MusicManager()
         self.music_manager.play_music(music_path)
-        # Điều chỉnh vị trí khởi tạo: đứng trên sàn chính
-        self.player = Knight(200, 336, 0.5, 5, self)  # scale=0.5, y=336 để đứng trên sàn y=464
+        # Khởi tạo Knight
+        self.player = Knight(200, 336, 0.5, 5, self)
         self.player_group = pygame.sprite.Group(self.player)
+        # Khởi tạo Slime
+        self.slime = Slime(200, 446, 1.0, 2, self)  # Scale = 2.0 để phóng to gấp đôi
+        self.enemy_group = pygame.sprite.Group(self.slime)
         self.moving_left = False
         self.moving_right = False
         print("Level started with knight at:", self.player.rect.topleft)
+        print("Level started with slime at:", self.slime.rect.topleft)
 
     def run(self):
         clock = pygame.time.Clock()
@@ -69,6 +74,11 @@ class BattleLevel1(BattleBase):
                     self.player.update_action(11)  # JumpAttack
                 elif self.player.attack:
                     self.player.update_action(4)   # Attack
+                    # Kiểm tra va chạm giữa Knight và Slime khi tấn công
+                    if pygame.sprite.spritecollide(self.player, self.enemy_group, False):
+                        self.slime.health -= 10
+                        self.slime.update_action(2)  # Hurt
+                        print(f"Slime hit! Health remaining: {self.slime.health}")
                 elif self.player.block:
                     self.player.update_action(5)   # Block
                 elif self.player.cast:
@@ -89,12 +99,22 @@ class BattleLevel1(BattleBase):
                     self.player.update_action(0)   # Idle
 
                 self.player.move(self.moving_left, self.moving_right)
-                print("Knight position after move:", self.player.rect.topleft)
+
+            # Cập nhật Slime
+            if self.slime.alive:
+                self.slime.move()
+                if self.slime.in_air:
+                    self.slime.update_action(1)  # Jump
+                else:
+                    self.slime.update_action(0)  # Idle
 
             self.player.update_animation()
             self.player.check_alive()
+            self.slime.update_animation()
+            self.slime.check_alive()
             self.draw()
             self.player_group.draw(self.screen)
+            self.enemy_group.draw(self.screen)
             pygame.display.flip()
             clock.tick(60)
 
