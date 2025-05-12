@@ -6,93 +6,39 @@ class Knight(pygame.sprite.Sprite):
         pygame.sprite.Sprite.__init__(self)
         self.alive = True
         self.speed = speed
-        self.direction = 1  # 1: phải, -1: trái
+        self.direction = 1
         self.vel_y = 0
         self.jump = False
-        self.in_air = False  #Knight đứng yên, không rơi trong không khí
+        self.in_air = False
         self.flip = False
         self.animation_list = []
         self.frame_index = 0
-        self.action = 0  # 0: Idle, 1: Walk, 2: Jump, 3: Death, 4: Attack, 5: Block, 6: Cast, 7: Crouch, 8: Dash, 9: Dizzy, 10: Hurt, 11: JumpAttack, 12: Strike, 13: Win
-        self.update_time = pygame.time.get_ticks()
-        self.health = 100
+        self.action = 0
         self.attack = False
         self.block = False
         self.cast = False
         self.crouch = False
         self.dash = False
-        self.battle_base = battle_base  # Tham chiếu đến BattleBase để lấy thông tin va chạm
+        self.update_time = pygame.time.get_ticks()
+        self.health = 100
+        self.battle_base = battle_base
 
-
-        # Định nghĩa các trạng thái hoạt hình
-        self.animation_types = ['Idle', 'Walk', 'Jump', 'Death', 'Attack', 'Block', 'Cast', 'Crouch', 'Dash', 'Dizzy', 'Hurt', 'JumpAttack', 'Strike', 'Win']
+        self.animation_types = ['Idle', 'Walk', 'Jump', 'Attack']
         for animation in self.animation_types:
             temp_list = []
-            current_dir = os.path.dirname(os.path.abspath(__file__))
-            project_root = os.path.dirname(os.path.dirname(current_dir))
-            sprite_path = os.path.join(project_root, 'assets', 'sprites', 'knight files', 'knight png', animation)
-            try:
-                num_of_frames = len(os.listdir(sprite_path))
-                print(f"Loading {animation} with {num_of_frames} frames from {sprite_path}")
-                for i in range(num_of_frames):
-                    img_path = os.path.join(sprite_path, f'{i}.png')
-                    if not os.path.exists(img_path):
-                        print(f"Sprite file missing: {img_path}")
-                        continue
-                    img = pygame.image.load(img_path).convert_alpha()
-                    img = pygame.transform.scale(img, (int(img.get_width() * scale), int(img.get_height() * scale)))
-                    temp_list.append(img)
-            except Exception as e:
-                print(f"Error loading sprites for {animation}: {e}")
-                temp_list.append(pygame.Surface((50, 50)))
+            sprite_path = os.path.join('assets/sprites/knight files/knight png/', animation)
+            for i in range(6 if animation != 'Jump' else 2):
+                img_path = os.path.join(sprite_path, f"{i}.png")
+                img = pygame.image.load(img_path).convert_alpha()
+                img = pygame.transform.scale(img, (int(img.get_width() * scale), int(img.get_height() * scale)))
+                temp_list.append(img)
             self.animation_list.append(temp_list)
 
-        if not self.animation_list or not self.animation_list[0]:
-            print("Error: No sprites loaded for knight!")
-            self.image = pygame.Surface((50, 50))
-            self.image.fill((255, 0, 0))
-        else:
-            self.image = self.animation_list[self.action][self.frame_index]
-
+        self.image = self.animation_list[self.action][self.frame_index]
         self.rect = self.image.get_rect()
-        self.rect.bottomleft = (x, y)  # Cập nhật lại đúng chỗ sau khi get_rect()
+        self.rect.topleft = (x, y)
 
-
-    def load_sprite(self, animation):
-        idx = self.animation_types.index(animation)
-        print(f"Manually loading sprite for {animation}, frame count: {len(self.animation_list[idx])}")
-        if self.animation_list[idx]:
-            self.image = self.animation_list[idx][self.frame_index]
-
-    def move(self, moving_left, moving_right):
-        dx = 0
-        dy = 0
-
-        if moving_left:
-            dx = -self.speed
-            self.flip = True
-            self.direction = -1
-        if moving_right:
-            dx = self.speed
-            self.flip = False
-            self.direction = 1
-
-        if self.jump and not self.in_air:
-            self.vel_y = -15  # Tăng lực nhảy
-            self.jump = False
-            self.in_air = True
-
-        self.vel_y += 0.75  # GRAVITY
-        if self.vel_y > 10:
-            self.vel_y = 10
-        dy += self.vel_y
-
-        self.rect.x += dx
-        self.check_collision('horizontal', dx)
-        self.rect.y += dy
-        self.check_collision('vertical', dy)
-
-        # Giới hạn trong màn hình
+    def move(self, left, right):
         if self.rect.left < 0:
             self.rect.left = 0
         if self.rect.right > 800:
@@ -103,92 +49,74 @@ class Knight(pygame.sprite.Sprite):
             self.rect.bottom = 600
             self.vel_y = 0
             self.in_air = False
-        
-    def check_on_ground(self, tile_layer, tile_width, tile_height):
-        tile_x = int((self.rect.centerx) / tile_width)
-        tile_y = int((self.rect.bottom + 1) / tile_height)
-        if 0 <= tile_y < len(tile_layer) and 0 <= tile_x < len(tile_layer[0]):
-            tile_id = tile_layer[tile_y][tile_x]
-            return tile_id != 0
-        return False
+        dx = 0
+        dy = 0
+        if left:
+            dx = -self.speed
+            self.flip = True
+            self.direction = -1
+        if right:
+            dx = self.speed
+            self.flip = False
+            self.direction = 1
+        if self.jump and not self.in_air:
+            self.vel_y = -30
+            self.jump = False
+            self.in_air = True
 
+        self.vel_y += 0.75
+        if self.vel_y > 10:
+            self.vel_y = 10
+        dy += self.vel_y
 
-    def check_collision(self, direction, move_value):
+        self.rect.x += dx
+        self.check_collision('horizontal', dx)
+        self.rect.y += dy
+        self.check_collision('vertical', dy)
+        #return dx
+
+    def check_collision(self, direction, value):
         map_width = self.battle_base.map_width
         map_height = self.battle_base.map_height
         tile_width = self.battle_base.tile_width
         tile_height = self.battle_base.tile_height
-        tile_layers = self.battle_base.tile_layers
+        layer = self.battle_base.tile_layers[1]  # Ground layer
 
-
-        layer_idx = 1  # Layer "ground"
-        layer = tile_layers[layer_idx]
-
-        # Chỉ kiểm tra tile gần chân knight
-        start_col = max(0, (self.rect.left - tile_width) // tile_width)
-        end_col = min(map_width, (self.rect.right + tile_width) // tile_width)
-        start_row = max(0, (self.rect.bottom - self.rect.height + 10) // tile_height)  # Bắt đầu từ gần chân với buffer
-        end_row = min(map_height, (self.rect.bottom + tile_height) // tile_height)
-
-        for row in range(start_row, end_row):
-            for col in range(start_col, end_col):
+        for row in range(map_height):
+            for col in range(map_width):
                 idx = row * map_width + col
                 tile = layer[idx]
                 if tile > 0:
                     tile_rect = pygame.Rect(col * tile_width, row * tile_height, tile_width, tile_height)
-                    collision_buffer = 2
-                    if direction == 'horizontal':
-                        if self.rect.colliderect(tile_rect):
-                            if move_value > 0 and self.rect.right > tile_rect.left and self.rect.right <= tile_rect.left + collision_buffer:
+                    if self.rect.colliderect(tile_rect):
+                        if direction == 'horizontal':
+                            if value > 0:
                                 self.rect.right = tile_rect.left
-                                print(f"Collision (right) with tile at ({col * tile_width}, {row * tile_height})")
-                            elif move_value < 0 and self.rect.left < tile_rect.right and self.rect.left >= tile_rect.right - collision_buffer:
+                            elif value < 0:
                                 self.rect.left = tile_rect.right
-                                print(f"Collision (left) with tile at ({col * tile_width}, {row * tile_height})")
-                    elif direction == 'vertical':
-                        if self.rect.colliderect(tile_rect):
-                            if move_value > 0 and self.rect.bottom > tile_rect.top and self.rect.bottom <= tile_rect.top + collision_buffer:
+                        elif direction == 'vertical':
+                            if value > 0:
                                 self.rect.bottom = tile_rect.top
                                 self.vel_y = 0
                                 self.in_air = False
-                                print(f"Collision (bottom) with tile at ({col * tile_width}, {row * tile_height})")
-                            elif move_value < 0 and self.rect.top < tile_rect.bottom and self.rect.top >= tile_rect.bottom - collision_buffer:
+                            elif value < 0:
                                 self.rect.top = tile_rect.bottom
                                 self.vel_y = 0
-                                print(f"Collision (top) with tile at ({col * tile_width}, {row * tile_height})")
 
     def update_animation(self):
-        ANIMATION_COOLDOWN = 100
-        bottomleft = self.rect.bottomleft
+        cooldown = 100
         self.image = self.animation_list[self.action][self.frame_index]
-        self.rect = self.image.get_rect()
-        self.rect.bottomleft = bottomleft
-
-        if len(self.animation_list[self.action]) == 0:
-            print(f"No frames for action {self.action}")
-            return
-
-        if pygame.time.get_ticks() - self.update_time > ANIMATION_COOLDOWN:
+        if pygame.time.get_ticks() - self.update_time > cooldown:
             self.update_time = pygame.time.get_ticks()
             self.frame_index += 1
-
-            if self.frame_index >= len(self.animation_list[self.action]):
-                # Nếu là Attack, JumpAttack, Cast... thì trở lại Idle
-                if self.action in [4, 11, 6, 12]:
-                    self.attack = False
-                    self.update_action(0)
-                elif self.action in [3, 9, 10, 13]:  # Death/Dizzy/Hurt/Win
-                    self.frame_index = len(self.animation_list[self.action]) - 1
-                else:
-                    self.frame_index = 0
-
+        if self.frame_index >= len(self.animation_list[self.action]):
+            self.frame_index = 0
 
     def update_action(self, new_action):
         if new_action != self.action:
             self.action = new_action
             self.frame_index = 0
             self.update_time = pygame.time.get_ticks()
-            print(f"Switching to action {self.action} with {len(self.animation_list[self.action])} frames")
 
     def check_alive(self):
         if self.health <= 0:

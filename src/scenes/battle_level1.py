@@ -25,7 +25,6 @@ class BattleLevel1(BattleBase):
                 x = int(obj["x"])
                 y = int(obj["y"])
 
-
                 if name == "player":
                     self.player = Knight(x, y, scale=0.35, speed=5, battle_base=self)
                     self.player.in_air = False
@@ -36,15 +35,12 @@ class BattleLevel1(BattleBase):
                     self.slime_list.append(slime)
                     print(f"[Slime] Spawned: {name} at {x}, {y}")
 
-        # Kiểm tra đảm bảo player đã tạo
         if not self.player:
             raise ValueError("Không tìm thấy object 'player' trong map!")
 
         self.enemy_group = pygame.sprite.Group(self.slime_list)
         self.moving_left = False
         self.moving_right = False
-
-
 
     def run(self):
         clock = pygame.time.Clock()
@@ -89,14 +85,14 @@ class BattleLevel1(BattleBase):
 
             if self.player.alive:
                 self.player.move(self.moving_left, self.moving_right)
+                scroll = self.player.move(self.moving_left, self.moving_right)
 
-            if self.player.alive:
+
                 if self.player.attack and self.player.in_air:
                     self.player.update_action(11)  # JumpAttack
                 elif self.player.attack:
                     if self.player.action != 4:
                         self.player.update_action(4)   # Attack
-                    # Kiểm tra va chạm giữa Knight và từng Slime
                     for slime in self.slime_list:
                         if slime.alive and self.player.rect.colliderect(slime.rect):
                             slime.health -= 10
@@ -121,9 +117,7 @@ class BattleLevel1(BattleBase):
                 else:
                     self.player.update_action(0)   # Idle
 
-                self.player.move(self.moving_left, self.moving_right)
-
-            # Cập nhật Slimes
+            # Cập nhật slime
             for slime in self.slime_list:
                 if slime.alive:
                     slime.move()
@@ -146,6 +140,5 @@ class BattleLevel1(BattleBase):
             pygame.display.flip()
             clock.tick(60)
 
-
     def draw(self):
-        super().draw()  # Vẽ bản đồ từ BattleBase
+        super().draw()

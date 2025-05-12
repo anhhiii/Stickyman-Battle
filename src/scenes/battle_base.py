@@ -10,7 +10,7 @@ class BattleBase:
         self.running = True
         self.level_name = level_name
 
-        self.tile_size = 16  # mỗi ô vuông là 16x16
+        self.tile_size = 16
         self.tile_layers = []
         self.object_layers = []
 
@@ -37,7 +37,6 @@ class BattleBase:
                 'source': ts.get("source")
             })
 
-        # Load các layer
         self.tile_layers.clear()
         self.object_layers.clear()
         for layer in root.findall("layer"):
@@ -48,13 +47,11 @@ class BattleBase:
             if encoding == "base64" and compression == "zlib":
                 raw_data = base64.b64decode(data.text.strip())
                 decompressed = zlib.decompress(raw_data)
-                # Mỗi tile là 4 byte (32-bit little endian)
                 tile_count = self.map_width * self.map_height
                 tile_ids = [int.from_bytes(decompressed[i:i+4], byteorder='little') for i in range(0, tile_count * 4, 4)]
                 self.tile_layers.append(tile_ids)
             else:
                 print(f"[ERROR] Unsupported encoding/compression: {encoding} / {compression}")
-
 
         for obj_group in root.findall("objectgroup"):
             objects = []
@@ -69,7 +66,6 @@ class BattleBase:
                 }
                 objects.append(obj_data)
             self.object_layers.append(objects)
-
 
     def load_tiles(self):
         self.tiles = {}
@@ -115,7 +111,7 @@ class BattleBase:
                     self.tiles[firstgid + id_offset] = tile
                     id_offset += 1
 
-    def draw(self):
+    def draw(self, scroll_x=0):
         for layer in self.tile_layers:
             for idx, tile in enumerate(layer):
                 tile = int(tile)
@@ -124,7 +120,7 @@ class BattleBase:
                     row_idx = idx // self.map_width
                     img = self.tiles.get(tile)
                     if img:
-                        self.screen.blit(img, (col_idx * self.tile_width, row_idx * self.tile_height))
+                        self.screen.blit(img, (col_idx * self.tile_width - scroll_x, row_idx * self.tile_height))
 
     def run(self):
         clock = pygame.time.Clock()
