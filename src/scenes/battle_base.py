@@ -50,6 +50,10 @@ class BattleBase:
                 tile_count = self.map_width * self.map_height
                 tile_ids = [int.from_bytes(decompressed[i:i+4], byteorder='little') for i in range(0, tile_count * 4, 4)]
                 self.tile_layers.append(tile_ids)
+            elif encoding == "csv":
+                raw_data = data.text.strip().replace('\n', '')
+                tile_ids = [int(val) for val in raw_data.split(',') if val.strip().isdigit()]
+                self.tile_layers.append(tile_ids)
             else:
                 print(f"[ERROR] Unsupported encoding/compression: {encoding} / {compression}")
 
@@ -111,8 +115,10 @@ class BattleBase:
                     self.tiles[firstgid + id_offset] = tile
                     id_offset += 1
 
-    def draw(self, scroll_x=0):
-        for layer in self.tile_layers:
+    def draw(self, camera_offset=[0, 0]):
+        self.screen.fill((0, 0, 0))  # Xóa màn hình
+
+        for layer_idx, layer in enumerate(self.tile_layers):
             for idx, tile in enumerate(layer):
                 tile = int(tile)
                 if tile > 0:
@@ -120,7 +126,13 @@ class BattleBase:
                     row_idx = idx // self.map_width
                     img = self.tiles.get(tile)
                     if img:
-                        self.screen.blit(img, (col_idx * self.tile_width - scroll_x, row_idx * self.tile_height))
+                        self.screen.blit(
+                            img,
+                            (
+                                col_idx * self.tile_width - camera_offset[0],
+                                row_idx * self.tile_height - camera_offset[1]
+                            )
+                        )
 
     def run(self):
         clock = pygame.time.Clock()

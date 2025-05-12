@@ -27,7 +27,6 @@ class BattleLevel1(BattleBase):
 
                 if name == "player":
                     self.player = Knight(x, y, scale=0.35, speed=5, battle_base=self)
-                    self.player.in_air = False
                     self.player_group = pygame.sprite.Group(self.player)
                     print(f"[Knight] Spawned at {x}, {y}")
                 elif "slime" in name:
@@ -41,6 +40,11 @@ class BattleLevel1(BattleBase):
         self.enemy_group = pygame.sprite.Group(self.slime_list)
         self.moving_left = False
         self.moving_right = False
+
+        # Khởi tạo camera offset
+        self.camera_offset = [0, 0]  # [x, y]
+        self.screen_width = screen.get_width()
+        self.screen_height = screen.get_height()
 
     def run(self):
         clock = pygame.time.Clock()
@@ -85,8 +89,18 @@ class BattleLevel1(BattleBase):
 
             if self.player.alive:
                 self.player.move(self.moving_left, self.moving_right)
-                scroll = self.player.move(self.moving_left, self.moving_right)
+                # Cập nhật camera offset
+                map_width_px = self.map_width * self.tile_width
+                map_height_px = self.map_height * self.tile_height
 
+                # Giữ Knight gần trung tâm màn hình
+                target_x = self.player.rect.centerx - self.screen_width // 2
+                target_y = self.player.rect.centery - self.screen_height // 2
+
+                # Giới hạn camera trong ranh giới bản đồ
+                self.camera_offset[0] = max(0, min(target_x, map_width_px - self.screen_width))
+                self.camera_offset[1] = max(0, min(target_y, map_height_px - self.screen_height))
+                print(f"Camera offset: {self.camera_offset}")
 
                 if self.player.attack and self.player.in_air:
                     self.player.update_action(11)  # JumpAttack
@@ -131,9 +145,6 @@ class BattleLevel1(BattleBase):
                 slime.update_animation()
                 slime.check_alive()
 
-            self.player.update_animation()
-            self.player.check_alive()
-
             self.draw()
             self.player_group.draw(self.screen)
             self.enemy_group.draw(self.screen)
@@ -141,4 +152,7 @@ class BattleLevel1(BattleBase):
             clock.tick(60)
 
     def draw(self):
-        super().draw()
+        self.screen.fill((0, 0, 0))  # Xóa màn hình
+
+        # Truyền camera_offset vào BattleBase.draw
+        super().draw(self.camera_offset)
