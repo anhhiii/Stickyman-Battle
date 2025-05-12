@@ -23,6 +23,7 @@ class Knight(pygame.sprite.Sprite):
         self.dash = False
         self.battle_base = battle_base  # Tham chiếu đến BattleBase để lấy thông tin va chạm
 
+
         # Định nghĩa các trạng thái hoạt hình
         self.animation_types = ['Idle', 'Walk', 'Jump', 'Death', 'Attack', 'Block', 'Cast', 'Crouch', 'Dash', 'Dizzy', 'Hurt', 'JumpAttack', 'Strike', 'Win']
         for animation in self.animation_types:
@@ -103,6 +104,13 @@ class Knight(pygame.sprite.Sprite):
             self.vel_y = 0
             self.in_air = False
         
+    def check_on_ground(self, tile_layer, tile_width, tile_height):
+        tile_x = int((self.rect.centerx) / tile_width)
+        tile_y = int((self.rect.bottom + 1) / tile_height)
+        if 0 <= tile_y < len(tile_layer) and 0 <= tile_x < len(tile_layer[0]):
+            tile_id = tile_layer[tile_y][tile_x]
+            return tile_id != 0
+        return False
 
 
     def check_collision(self, direction, move_value):
@@ -113,7 +121,7 @@ class Knight(pygame.sprite.Sprite):
         tile_layers = self.battle_base.tile_layers
 
 
-        layer_idx = 1  # Layer "map"
+        layer_idx = 1  # Layer "ground"
         layer = tile_layers[layer_idx]
 
         # Chỉ kiểm tra tile gần chân knight
@@ -159,15 +167,21 @@ class Knight(pygame.sprite.Sprite):
         if len(self.animation_list[self.action]) == 0:
             print(f"No frames for action {self.action}")
             return
-        self.image = self.animation_list[self.action][self.frame_index]
+
         if pygame.time.get_ticks() - self.update_time > ANIMATION_COOLDOWN:
             self.update_time = pygame.time.get_ticks()
             self.frame_index += 1
-        if self.frame_index >= len(self.animation_list[self.action]):
-            if self.action in [3, 9, 10, 13]:
-                self.frame_index = len(self.animation_list[self.action]) - 1
-            else:
-                self.frame_index = 0
+
+            if self.frame_index >= len(self.animation_list[self.action]):
+                # Nếu là Attack, JumpAttack, Cast... thì trở lại Idle
+                if self.action in [4, 11, 6, 12]:
+                    self.attack = False
+                    self.update_action(0)
+                elif self.action in [3, 9, 10, 13]:  # Death/Dizzy/Hurt/Win
+                    self.frame_index = len(self.animation_list[self.action]) - 1
+                else:
+                    self.frame_index = 0
+
 
     def update_action(self, new_action):
         if new_action != self.action:

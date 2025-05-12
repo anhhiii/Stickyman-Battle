@@ -16,21 +16,35 @@ class BattleLevel1(BattleBase):
         self.music_manager = MusicManager()
         self.music_manager.play_music(music_path)
 
-        # Khởi tạo Knight
-        tile_x = 0
-        tile_y = 33
-        self.player = Knight(tile_x * 16, tile_y * 16, 0.35, 5, self)
+        # Khởi tạo các đối tượng từ object layer
+        self.player = None
+        self.slime_list = []
+        for layer in self.object_layers:
+            for obj in layer:
+                name = obj.get("name", "").lower()
+                x = int(obj["x"])
+                y = int(obj["y"])
 
-        self.player.in_air = False  # ✅ Không bị "rơi" ngay frame đầu
 
-        self.player_group = pygame.sprite.Group(self.player)
-        # Khởi tạo Slime
-        self.slime = Slime(200, 446, 1.0, 2, self)  # Scale = 2.0 để phóng to gấp đôi
-        self.enemy_group = pygame.sprite.Group(self.slime)
+                if name == "player":
+                    self.player = Knight(x, y, scale=0.35, speed=5, battle_base=self)
+                    self.player.in_air = False
+                    self.player_group = pygame.sprite.Group(self.player)
+                    print(f"[Knight] Spawned at {x}, {y}")
+                elif "slime" in name:
+                    slime = Slime(x, y, 1.0, 2, self)
+                    self.slime_list.append(slime)
+                    print(f"[Slime] Spawned: {name} at {x}, {y}")
+
+        # Kiểm tra đảm bảo player đã tạo
+        if not self.player:
+            raise ValueError("Không tìm thấy object 'player' trong map!")
+
+        self.enemy_group = pygame.sprite.Group(self.slime_list)
         self.moving_left = False
         self.moving_right = False
-        print("Level started with knight at:", self.player.rect.topleft)
-        print("Level started with slime at:", self.slime.rect.topleft)
+
+
 
     def run(self):
         clock = pygame.time.Clock()
@@ -64,8 +78,6 @@ class BattleLevel1(BattleBase):
                         self.moving_left = False
                     if event.key == pygame.K_d:
                         self.moving_right = False
-                    if event.key == pygame.K_SPACE:
-                        self.player.attack = False
                     if event.key == pygame.K_b:
                         self.player.block = False
                     if event.key == pygame.K_c:
@@ -74,7 +86,7 @@ class BattleLevel1(BattleBase):
                         self.player.crouch = False
                     if event.key == pygame.K_e:
                         self.player.dash = False
-            
+
             if self.player.alive:
                 self.player.move(self.moving_left, self.moving_right)
 
@@ -82,12 +94,14 @@ class BattleLevel1(BattleBase):
                 if self.player.attack and self.player.in_air:
                     self.player.update_action(11)  # JumpAttack
                 elif self.player.attack:
-                    self.player.update_action(4)   # Attack
-                    # Kiểm tra va chạm giữa Knight và Slime khi tấn công
-                    if pygame.sprite.spritecollide(self.player, self.enemy_group, False):
-                        self.slime.health -= 10
-                        self.slime.update_action(2)  # Hurt
-                        # print(f"Slime hit! Health remaining: {self.slime.health}")
+                    if self.player.action != 4:
+                        self.player.update_action(4)   # Attack
+                    # Kiểm tra va chạm giữa Knight và từng Slime
+                    for slime in self.slime_list:
+                        if slime.alive and self.player.rect.colliderect(slime.rect):
+                            slime.health -= 10
+                            slime.update_action(2)  # Hurt
+                            slime.check_alive()
                 elif self.player.block:
                     self.player.update_action(5)   # Block
                 elif self.player.cast:
@@ -109,23 +123,29 @@ class BattleLevel1(BattleBase):
 
                 self.player.move(self.moving_left, self.moving_right)
 
-            # Cập nhật Slime
-            if self.slime.alive:
-                self.slime.move()
-                if self.slime.in_air:
-                    self.slime.update_action(1)  # Jump
+            # Cập nhật Slimes
+            for slime in self.slime_list:
+                if slime.alive:
+                    slime.move()
+                    if slime.in_air:
+                        slime.update_action(1)  # Jump
+                    else:
+                        slime.update_action(0)  # Idle
                 else:
-                    self.slime.update_action(0)  # Idle
+                    if slime.action != 3:
+                        slime.update_action(3)  # Death
+                slime.update_animation()
+                slime.check_alive()
 
             self.player.update_animation()
             self.player.check_alive()
-            self.slime.update_animation()
-            self.slime.check_alive()
+
             self.draw()
             self.player_group.draw(self.screen)
             self.enemy_group.draw(self.screen)
             pygame.display.flip()
             clock.tick(60)
+
 
     def draw(self):
         super().draw()  # Vẽ bản đồ từ BattleBase

@@ -4,6 +4,8 @@ import sys     # Để thoát chương trình
 import os      # Để xử lý đường dẫn
 
 
+
+
 # Import Background từ thư mục src/scenes
 from src.scenes.background import Background
 from src.scenes.menu import Menu

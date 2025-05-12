@@ -1,6 +1,7 @@
 import pygame
 import os
-import json
+import base64
+import zlib
 import xml.etree.ElementTree as ET
 
 class BattleBase:
@@ -19,22 +20,56 @@ class BattleBase:
     def load_level(self, level_name):
         current_dir = os.path.dirname(os.path.abspath(__file__))
         project_root = os.path.dirname(os.path.dirname(current_dir))
-        path = os.path.join(project_root, "levels", f"{level_name}.tmj")
+        path = os.path.join(project_root, "levels", f"{level_name}.tmx")
 
-        with open(path, "r") as f:
-            data = json.load(f)
+        tree = ET.parse(path)
+        root = tree.getroot()
 
-        self.tile_width = data.get('tilewidth', 16)
-        self.tile_height = data.get('tileheight', 16)
-        self.map_width = data['width']
-        self.map_height = data['height']
-        self.tilesets_info = data['tilesets']
+        self.tile_width = int(root.get('tilewidth'))
+        self.tile_height = int(root.get('tileheight'))
+        self.map_width = int(root.get('width'))
+        self.map_height = int(root.get('height'))
 
-        for layer in data['layers']:
-            if layer['type'] == 'tilelayer':
-                self.tile_layers.append(layer['data'])
-            elif layer['type'] == 'objectgroup':
-                self.object_layers.append(layer['objects'])
+        self.tilesets_info = []
+        for ts in root.findall("tileset"):
+            self.tilesets_info.append({
+                'firstgid': int(ts.get("firstgid")),
+                'source': ts.get("source")
+            })
+
+        # Load các layer
+        self.tile_layers.clear()
+        self.object_layers.clear()
+        for layer in root.findall("layer"):
+            data = layer.find("data")
+            encoding = data.get("encoding")
+            compression = data.get("compression")
+
+            if encoding == "base64" and compression == "zlib":
+                raw_data = base64.b64decode(data.text.strip())
+                decompressed = zlib.decompress(raw_data)
+                # Mỗi tile là 4 byte (32-bit little endian)
+                tile_count = self.map_width * self.map_height
+                tile_ids = [int.from_bytes(decompressed[i:i+4], byteorder='little') for i in range(0, tile_count * 4, 4)]
+                self.tile_layers.append(tile_ids)
+            else:
+                print(f"[ERROR] Unsupported encoding/compression: {encoding} / {compression}")
+
+
+        for obj_group in root.findall("objectgroup"):
+            objects = []
+            for obj in obj_group.findall("object"):
+                obj_data = {
+                    "name": obj.get("name"),
+                    "type": obj.get("type"),
+                    "x": float(obj.get("x")),
+                    "y": float(obj.get("y")),
+                    "width": float(obj.get("width", 0)),
+                    "height": float(obj.get("height", 0))
+                }
+                objects.append(obj_data)
+            self.object_layers.append(objects)
+
 
     def load_tiles(self):
         self.tiles = {}

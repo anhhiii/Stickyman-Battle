@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<map version="1.10" tiledversion="1.11.2" orientation="orthogonal" renderorder="right-down" width="50" height="38" tilewidth="16" tileheight="16" infinite="0" nextlayerid="5" nextobjectid="10">
+ <tileset firstgid="1" source="../assets/sprites/background/Blue.tsx"/>
+ <tileset firstgid="17" source="../assets/sprites/texture/TX Tileset Ground.tsx"/>
+ <layer id="1" name="platform" width="50" height="38">
+  <data encoding="base64" compression="zlib">
+   eJzt0bENwDAQw8B3gHj/keMtyBgsBPa6NTPP2fp537N9Qekf88jDXPrHPPIwl/4xjzzMpX/MIw9z6R/zyMNc+sc88jCX/jGPPMylf8wjD3PpH/PIw9wPKwwZ+w==
+  </data>
+ </layer>
+ <layer id="2" name="ground" width="50" height="38">
+  <data encoding="base64" compression="zlib">
+   eJzt1MdNg0EQhuHfB5KJTZBpg0wbJOM2TG6DTBvYpDbIsQTey16GkSxrRwJb3ys9Ws0c5rhFoZRSSimlIvvAJ77w7czt0mCpKIYwjJHS71kp1Vk1+7tanf+qZn9Xq7NSqrNr17/Opr9Oqf/TAx7xhGe8OPMr3jL3toj76X1HF39DN3rQiz5nLqM/c2+LuJ/eAYxiDOOYwKQzT2E6c2+LuJ/eGcxiDvNYwKIzL2E5c2+LuJ/eFaxiDevYwKYzV7CVubdF3E9vFTVsYwe72HPmfRxk7m0R99N7iCMc4wSnOHPmc1xk7m0R99N7iSvU0cA1bpz5FneZe1vE/fTe4wcTK9oT
+  </data>
+ </layer>
+ <layer id="3" name="margin" width="50" height="38">
+  <data encoding="base64" compression="zlib">
+   eJzt1E0KgzAUxPFkYRUs1Eu0FvT+N+oHVKhH6KwlAZ8kxOL/B7N5i4G3GecAAACQ0leZDfe9unjnOr/+DuC/pdqo0luXaqPYOuAYtm5W6a1b2rpZbB2Q3kN5Zux/KW/D3eqjTEqlbThl3Ida3U2gP3a3atVxVq7KLeMfvbrvgf7Y3WpQx8hOA4fwA3HjFNE=
+  </data>
+ </layer>
+ <objectgroup id="4" name="object">
+  <object id="1" name="player" x="48.6258" y="417.5" width="49.5" height="61.5"/>
+  <object id="2" name="BGDoor" x="19.0703" y="116.429" width="64" height="64"/>
+  <object id="3" name="slime6" x="106.392" y="236.873" width="48" height="48"/>
+  <object id="4" name="slime1" x="208.77" y="429.584" width="48" height="48"/>
+  <object id="5" name="slime2" x="688.539" y="427.577" width="48" height="48"/>
+  <object id="6" name="slime5" x="241.892" y="237.877" width="48" height="48"/>
+  <object id="7" name="slime3" x="533.969" y="429.584" width="48" height="48"/>
+  <object id="8" name="slime4" x="458.691" y="334.232" width="48" height="48"/>
+ </objectgroup>
+</map>
