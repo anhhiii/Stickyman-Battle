@@ -3,6 +3,7 @@ import os
 import base64
 import zlib
 import xml.etree.ElementTree as ET
+import pytmx  # Thư viện để xử lý tmx files
 
 class BattleBase:
     def __init__(self, screen, level_name):
@@ -13,6 +14,7 @@ class BattleBase:
         self.tile_size = 16
         self.tile_layers = []
         self.object_layers = []
+
 
         self.load_level(level_name)
         self.load_tiles()

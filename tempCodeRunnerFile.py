@@ -18,7 +18,7 @@ from src.scenes.battle_boss import BattleBoss
 def main():
     pygame.init()
     pygame.mixer.init()
-    screen = pygame.display.set_mode((800, 600), pygame.RESIZABLE)
+    screen = pygame.display.set_mode((800, 608), pygame.RESIZABLE)
     pygame.display.set_caption("STICKY MAN")
 
     current_scene = "background"
