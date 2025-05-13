@@ -97,6 +97,9 @@ class Slime(pygame.sprite.Sprite):
             self.rect.bottom = 600
             self.vel_y = 0
             self.in_air = False
+        if not self.alive:
+            return  # Dừng cập nhật di chuyển nếu slime đã chết
+
 
     def check_collision(self, direction, move_value):
         map_width = self.battle_base.map_width
@@ -145,18 +148,30 @@ class Slime(pygame.sprite.Sprite):
 
     def update_animation(self):
         ANIMATION_COOLDOWN = 100
-        if len(self.animation_list[self.action]) == 0:
-            print(f"No frames for action {self.action}")
-            return
+        bottomleft = self.rect.bottomleft
         self.image = self.animation_list[self.action][self.frame_index]
+        self.rect = self.image.get_rect()
+        self.rect.bottomleft = bottomleft
+
+        if len(self.animation_list[self.action]) == 0:
+            return
+
         if pygame.time.get_ticks() - self.update_time > ANIMATION_COOLDOWN:
             self.update_time = pygame.time.get_ticks()
             self.frame_index += 1
-        if self.frame_index >= len(self.animation_list[self.action]):
-            if self.action in [2, 3]:  # Hurt, Death
-                self.frame_index = len(self.animation_list[self.action]) - 1
-            else:
-                self.frame_index = 0
+
+            if self.frame_index >= len(self.animation_list[self.action]):
+                # Nếu đang Hurt thì quay lại Idle
+                if self.action == 2:  # Hurt
+                    self.update_action(0)  # Trở lại Idle
+                elif self.action == 3:  # Death
+                    self.frame_index = len(self.animation_list[self.action]) - 1
+                else:
+                    self.frame_index = 0
+                if not self.alive:
+                    return  # Không update animation nếu đã chết
+
+
         # print(f"Slime animation updated: action={self.action}, frame={self.frame_index}")
 
     def update_action(self, new_action):

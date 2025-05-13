@@ -16,21 +16,35 @@ class BattleLevel1(BattleBase):
         self.music_manager = MusicManager()
         self.music_manager.play_music(music_path)
 
-        # Khởi tạo Knight
-        tile_x = 0
-        tile_y = 33
-        self.player = Knight(tile_x * 16, tile_y * 16, 0.35, 5, self)
+        # Khởi tạo các đối tượng từ object layer
+        self.player = None
+        self.slime_list = []
+        for layer in self.object_layers:
+            for obj in layer:
+                name = obj.get("name", "").lower()
+                x = int(obj["x"])
+                y = int(obj["y"])
 
-        self.player.in_air = False  # ✅ Không bị "rơi" ngay frame đầu
+                if name == "player":
+                    self.player = Knight(x, y, scale=0.35, speed=3, battle_base=self)
+                    self.player_group = pygame.sprite.Group(self.player)
+                    print(f"[Knight] Spawned at {x}, {y}")
+                elif "slime" in name:
+                    slime = Slime(x, y, 1.0, 2, self)
+                    self.slime_list.append(slime)
+                    print(f"[Slime] Spawned: {name} at {x}, {y}")
 
-        self.player_group = pygame.sprite.Group(self.player)
-        # Khởi tạo Slime
-        self.slime = Slime(200, 446, 1.0, 2, self)  # Scale = 2.0 để phóng to gấp đôi
-        self.enemy_group = pygame.sprite.Group(self.slime)
+        if not self.player:
+            raise ValueError("Không tìm thấy object 'player' trong map!")
+
+        self.enemy_group = pygame.sprite.Group(self.slime_list)
         self.moving_left = False
         self.moving_right = False
-        print("Level started with knight at:", self.player.rect.topleft)
-        print("Level started with slime at:", self.slime.rect.topleft)
+
+        # Khởi tạo camera offset
+        self.camera_offset = [0, 0]  # [x, y]
+        self.screen_width = screen.get_width()
+        self.screen_height = screen.get_height()
 
     def run(self):
         clock = pygame.time.Clock()
@@ -48,9 +62,8 @@ class BattleLevel1(BattleBase):
                         self.moving_right = True
                     if event.key == pygame.K_w and self.player.alive:
                         self.player.jump = True
-                    if event.key == pygame.K_SPACE:
-                        self.player.load_sprite('Attack')
-                        self.player.attack = True
+                    if event.key == pygame.K_SPACE and self.player.alive:
+                        self.player.update_action(3)  # Kích hoạt Attack
                     if event.key == pygame.K_b:
                         self.player.block = True
                     if event.key == pygame.K_c:
@@ -64,8 +77,6 @@ class BattleLevel1(BattleBase):
                         self.moving_left = False
                     if event.key == pygame.K_d:
                         self.moving_right = False
-                    if event.key == pygame.K_SPACE:
-                        self.player.attack = False
                     if event.key == pygame.K_b:
                         self.player.block = False
                     if event.key == pygame.K_c:
@@ -74,32 +85,43 @@ class BattleLevel1(BattleBase):
                         self.player.crouch = False
                     if event.key == pygame.K_e:
                         self.player.dash = False
-            
-            if self.player.alive:
-                self.player.move(self.moving_left, self.moving_right)
 
             if self.player.alive:
+                self.player.move(self.moving_left, self.moving_right)
+                map_width_px = self.map_width * self.tile_width
+                map_height_px = self.map_height * self.tile_height
+
+                target_x = self.player.rect.centerx - self.screen_width // 2
+                target_y = self.player.rect.centery - self.screen_height // 2
+
+                # Điều chỉnh camera để di chuyển tự do theo chiều dọc
+                self.camera_offset[0] = max(0, min(target_x, map_width_px - self.screen_width))
+                self.camera_offset[1] = max(0, min(target_y, map_height_px - self.screen_height))
+                print(f"Camera offset: {self.camera_offset}, Player pos: {self.player.rect.centerx}, {self.player.rect.centery}, Map height: {map_height_px}")
+
+                # Đồng bộ với self.animation_types trong Knight
                 if self.player.attack and self.player.in_air:
-                    self.player.update_action(11)  # JumpAttack
+                    self.player.update_action(10)  # JumpAttack
                 elif self.player.attack:
-                    self.player.update_action(4)   # Attack
-                    # Kiểm tra va chạm giữa Knight và Slime khi tấn công
-                    if pygame.sprite.spritecollide(self.player, self.enemy_group, False):
-                        self.slime.health -= 10
-                        self.slime.update_action(2)  # Hurt
-                        # print(f"Slime hit! Health remaining: {self.slime.health}")
+                    if self.player.action != 3:
+                        self.player.update_action(3)   # Attack
+                    for slime in self.slime_list:
+                        if slime.alive and self.player.rect.colliderect(slime.rect):
+                            slime.health -= 10
+                            slime.update_action(2)  # Hurt
+                            slime.check_alive()
                 elif self.player.block:
-                    self.player.update_action(5)   # Block
+                    self.player.update_action(4)   # Block
                 elif self.player.cast:
-                    self.player.update_action(6)   # Cast
+                    self.player.update_action(5)   # Cast
                 elif self.player.crouch:
-                    self.player.update_action(7)   # Crouch
+                    self.player.update_action(6)   # Crouch
                 elif self.player.dash:
-                    self.player.update_action(8)   # Dash
+                    self.player.update_action(7)   # Dash
                 elif self.player.health <= 50 and not self.player.in_air:
-                    self.player.update_action(9)   # Dizzy
+                    self.player.update_action(8)   # Dizzy
                 elif self.player.health <= 70 and not self.player.in_air:
-                    self.player.update_action(10)  # Hurt
+                    self.player.update_action(9)   # Hurt
                 elif self.player.in_air and self.player.vel_y > 1:
                     self.player.update_action(2)   # Jump
                 elif self.moving_left or self.moving_right:
@@ -107,25 +129,41 @@ class BattleLevel1(BattleBase):
                 else:
                     self.player.update_action(0)   # Idle
 
-                self.player.move(self.moving_left, self.moving_right)
+                self.player.update_animation()
 
-            # Cập nhật Slime
-            if self.slime.alive:
-                self.slime.move()
-                if self.slime.in_air:
-                    self.slime.update_action(1)  # Jump
+            for slime in self.slime_list:
+                if slime.alive:
+                    slime.move()
+                    if slime.in_air:
+                        slime.update_action(1)  # Jump
+                    else:
+                        slime.update_action(0)  # Idle
                 else:
-                    self.slime.update_action(0)  # Idle
+                    if slime.action != 3:
+                        slime.update_action(3)  # Death
+                slime.update_animation()
+                slime.check_alive()
 
-            self.player.update_animation()
-            self.player.check_alive()
-            self.slime.update_animation()
-            self.slime.check_alive()
             self.draw()
-            self.player_group.draw(self.screen)
-            self.enemy_group.draw(self.screen)
             pygame.display.flip()
             clock.tick(60)
 
     def draw(self):
-        super().draw()  # Vẽ bản đồ từ BattleBase
+        self.screen.fill((0, 0, 0))  # Xóa màn hình
+        super().draw(self.camera_offset)
+
+        # Vẽ Knight với camera offset và flip đúng
+        for sprite in self.player_group:
+            print(f"Drawing Knight: flip={sprite.flip}, pos={sprite.rect.x}, {sprite.rect.y}")  # Debug
+            flipped_image = pygame.transform.flip(sprite.image, sprite.flip, False)
+            self.screen.blit(
+                flipped_image,
+                (sprite.rect.x - self.camera_offset[0], sprite.rect.y - self.camera_offset[1])
+            )
+
+        # Vẽ enemy với camera offset
+        for sprite in self.enemy_group:
+            self.screen.blit(
+                sprite.image,
+                (sprite.rect.x - self.camera_offset[0], sprite.rect.y - self.camera_offset[1])
+            )

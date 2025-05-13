@@ -4,24 +4,20 @@ from src.scenes.menu import Menu
 from src.components.settings_button import SettingsButton
 from src.components.music_manager import MusicManager
 
-
 class Background:
     def __init__(self, screen):
         self.screen = screen
-        self.WINDOW_WIDTH, self.WINDOW_HEIGHT = screen.get_size()
+        self.WINDOW_WIDTH, self.WINDOW_HEIGHT = 800, 608
         self.running = True
         self.button_pressed = False
         self.settings_button = SettingsButton(self.screen)
         self.music_manager = MusicManager()
 
-
-        # Load background
         current_dir = os.path.dirname(os.path.abspath(__file__))
         project_root = os.path.dirname(os.path.dirname(current_dir))
         bg_path = os.path.join(project_root, 'assets', 'backgrounds', '1.jpg')
         button_path = os.path.join(project_root, 'assets', 'icons', 'start_button.png')
 
-        # Load music
         music_path = os.path.join(project_root, 'assets', 'audio', 'music_theme', 'MusicMenu.mp3')
         self.music_manager.play_music(music_path)
 
@@ -41,13 +37,12 @@ class Background:
 
         self.update_button_image()
 
-        # Font
         self.title_font_path = os.path.join(project_root, 'assets', 'fonts', 'RubikGlitch-Regular.ttf')
         self.text_font_path = os.path.join(project_root, 'assets', 'fonts', 'dpcomic.ttf')
         self.update_font_size()
 
     def update_background_size(self):
-        self.WINDOW_WIDTH, self.WINDOW_HEIGHT = self.screen.get_size()
+        self.WINDOW_WIDTH, self.WINDOW_HEIGHT = 800, 608
         self.bg_image = pygame.transform.scale(self.original_bg_image, (self.WINDOW_WIDTH, self.WINDOW_HEIGHT))
 
     def update_font_size(self):
@@ -92,24 +87,14 @@ class Background:
                     self.running = False
                     next_scene = "quit"
 
-                elif event.type == pygame.VIDEORESIZE:
-                    self.screen = pygame.display.set_mode((event.w, event.h), pygame.RESIZABLE)
-                    self.update_background_size()
-                    self.update_font_size()
-                    self.update_button_image()
-                    self.settings_button.update_position(self.screen) 
-
                 elif event.type == pygame.MOUSEBUTTONDOWN:
-                    # Xử lý ưu tiên Popup Setting trước
                     if self.settings_button.settings_menu_open:
                         result = self.settings_button.handle_event(event)
                         if result == "home":
                             self.running = False
                             next_scene = "menu"
-                        # Nếu popup đang mở → KHÔNG cho xử lý Start button nữa
-                        continue  
+                        continue
 
-                    # Chỉ khi popup không mở mới xử lý Start
                     if self.start_button_rect.collidepoint(event.pos):
                         self.button_pressed = True
                         self.update_button_image()
@@ -122,16 +107,14 @@ class Background:
                         self.button_pressed = False
                         self.update_button_image()
 
-                
                 result = self.settings_button.handle_event(event)
                 if result == "home":
                     self.running = False
-                    next_scene = "menu" 
- 
+                    next_scene = "menu"
+
             self.draw_background()
             self.draw_button()
             self.draw_text()
-            self.settings_button.update_position(self.screen)
             self.settings_button.draw()
             pygame.display.flip()
             clock.tick(60)
