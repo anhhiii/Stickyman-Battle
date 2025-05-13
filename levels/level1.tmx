@@ -131,8 +131,8 @@
  <objectgroup id="4" name="object">
   <object id="1" name="player" x="48.6258" y="417.5" width="49.5" height="61.5"/>
   <object id="2" name="BGDoor" x="19.0703" y="116.429" width="64" height="64"/>
-  <object id="3" name="slime6" x="106.392" y="236.873" width="48" height="48"/>
-  <object id="4" name="slime1" x="208.77" y="429.584" width="48" height="48"/>
+  <object id="3" name="slime6" x="150" y="237.877" width="48" height="48"/>
+  <object id="4" name="slime1" x="260.77" y="429.584" width="48" height="48"/>
   <object id="5" name="slime2" x="688.539" y="427.577" width="48" height="48"/>
   <object id="6" name="slime5" x="241.892" y="237.877" width="48" height="48"/>
   <object id="7" name="slime3" x="533.969" y="429.584" width="48" height="48"/>
