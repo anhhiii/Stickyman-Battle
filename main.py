@@ -13,6 +13,7 @@ from src.scenes.battle_level1 import BattleLevel1
 from src.scenes.battle_level2 import BattleLevel2
 from src.scenes.battle_level3 import BattleLevel3
 from src.scenes.battle_boss import BattleBoss
+from src.ui.health_bar import HealthBar  
 
 
 def main():
@@ -20,6 +21,10 @@ def main():
     pygame.mixer.init()
     screen = pygame.display.set_mode((800, 600), pygame.RESIZABLE)
     pygame.display.set_caption("STICKY MAN")
+
+    # Khởi tạo thanh máu (góc trên bên trái)
+    player_health = 100  # Giá trị máu ban đầu, bạn có thể thay đổi theo game
+    health_bar = HealthBar(20, 20, 140, 20, player_health)  # x, y, width, height, max_health
 
     current_scene = "background"
     while True:
@@ -33,16 +38,16 @@ def main():
             current_scene = menu_scene.run()
         
         if current_scene == "level1":
-            battle = BattleLevel1(screen)
+            battle = BattleLevel1(screen, health_bar, player_health)
             current_scene = battle.run()
         elif current_scene == "level2":
-            battle = BattleLevel2(screen)
+            battle = BattleLevel2(screen, health_bar, player_health)
             current_scene = battle.run()
         elif current_scene == "level3":
-            battle = BattleLevel3(screen)
+            battle = BattleLevel3(screen, health_bar, player_health)
             current_scene = battle.run()
         elif current_scene == "boss":
-            battle = BattleBoss(screen)
+            battle = BattleBoss(screen, health_bar, player_health)
             current_scene = battle.run()
 
 
