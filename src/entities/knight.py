@@ -4,7 +4,7 @@ import os
 class Knight(pygame.sprite.Sprite):
     def __init__(self, x, y, scale, speed, battle_base):
         super().__init__()
-        self.rect = pygame.Rect(x, y, 49, 61)  # Kích thước của Knight
+        self.rect = pygame.Rect(x, y, 49, 61)
         self.scale = scale
         self.speed = speed
         self.battle_base = battle_base
@@ -12,7 +12,7 @@ class Knight(pygame.sprite.Sprite):
         self.direction = 1
         self.vel_y = 0
         self.jump = False
-        self.in_air = False
+        self.in_air = True
         self.attack = False
         self.block = False
         self.cast = False
@@ -25,10 +25,9 @@ class Knight(pygame.sprite.Sprite):
         self.animation_types = ['Idle', 'Walk', 'Jump', 'Attack', 'Block', 'Cast', 'Crouch', 'Dash', 'Dizzy', 'Hurt', 'JumpAttack']
         self.animation_list = []
         self.update_time = pygame.time.get_ticks()
-        self.attack_frame = 0  # Thêm biến để đếm frame của Attack
-        self.jump_start_y = y  # Lưu vị trí y ban đầu
-        
-        # Tải sprite ban đầu cho tất cả hành động
+        self.attack_frame = 0
+        self.jump_start_y = y
+
         for action in self.animation_types:
             sprite_list = []
             action_folder = os.path.join('assets', 'sprites', 'knight files', 'knight png', action)
@@ -43,13 +42,33 @@ class Knight(pygame.sprite.Sprite):
                     sprite_list.append(img)
             self.animation_list.append(sprite_list)
 
-        if not self.animation_list or not self.animation_list[0]:
-            raise ValueError("Failed to load any sprites for Knight!")
-
         self.image = self.animation_list[self.action][self.frame_index]
         self.rect = self.image.get_rect()
         self.rect.x = round(x / self.battle_base.tile_width) * self.battle_base.tile_width
         self.rect.y = round(y / self.battle_base.tile_height) * self.battle_base.tile_height
+        self.adjust_to_ground()  # Căn chỉnh vị trí khởi tạo
+
+    def adjust_to_ground(self):
+        tile_width = self.battle_base.tile_width
+        tile_height = self.battle_base.tile_height
+        map_width = self.battle_base.map_width
+        map_height = self.battle_base.map_height
+        layer_ground = self.battle_base.tile_layers[1]
+        valid_rows = [12, 18, 24, 30]
+
+        col = self.rect.x // tile_width
+        for row in reversed(valid_rows):
+            idx = row * map_width + col
+            if idx < len(layer_ground) and layer_ground[idx] >= 229:
+                target_y = row * tile_height
+                self.rect.bottom = target_y
+                self.vel_y = 0
+                self.in_air = False
+                print(f"Đã căn chỉnh xuống ô đất tại y={target_y}")
+                break
+        else:
+            self.in_air = True
+            print("Không tìm thấy mặt đất, knight sẽ rơi")
 
     def load_sprite(self, action):
         action_folder = action
@@ -70,24 +89,15 @@ class Knight(pygame.sprite.Sprite):
         self.frame_index = 0
 
     def move(self, left, right):
-        map_width_px = self.battle_base.map_width * self.battle_base.tile_width
-        map_height_px = self.battle_base.map_height * self.battle_base.tile_height
-        print(f"Map bounds: width={map_width_px}px, height={map_height_px}px")
+        map_width_px = 800
+        map_height_px = self.battle_base.map_height * self.battle_base.tile_height  # 38 * 16 = 608
 
         if self.rect.left < 0:
             self.rect.left = 0
-            print("Hit left boundary!")
+            print("Chạm biên trái của bản đồ!")
         if self.rect.right > map_width_px:
             self.rect.right = map_width_px
-            print("Hit right boundary!")
-        if self.rect.top < 0:
-            self.rect.top = 0
-            self.vel_y = 0
-            print("Hit top boundary!")
-        if self.rect.bottom > map_height_px:
-            self.rect.bottom = map_height_px
-            self.vel_y = 0
-            self.in_air = False
+            print("Chạm biên phải của bản đồ!")
 
         dx = 0
         dy = 0
@@ -95,14 +105,11 @@ class Knight(pygame.sprite.Sprite):
             dx = -self.speed
             self.flip = True
             self.direction = -1
-            print(f"Moving left: flip={self.flip}, direction={self.direction}")
         if right:
             dx = self.speed
             self.flip = False
             self.direction = 1
-            print(f"Moving right: flip={self.flip}, direction={self.direction}")
         if self.jump and not self.in_air:
-            print("Knight jumps!")
             self.vel_y = -13
             self.jump = False
             self.in_air = True
@@ -113,60 +120,79 @@ class Knight(pygame.sprite.Sprite):
             self.vel_y = 10
         dy += self.vel_y
 
-        if self.in_air and self.vel_y < 0:
-            height_jumped = self.jump_start_y - self.rect.y
-            if height_jumped >= 112:
-                self.rect.y = self.jump_start_y - 112
-                self.vel_y = 0
-                print(f"Reached max jump height: {height_jumped} pixels")
-
-        self.in_air = True
-
+        prev_x = self.rect.x
         self.rect.x += dx
-        # self.check_collision('horizontal', dx)
         self.rect.y += dy
-        # self.check_collision('vertical', dy)
-        print(f"Knight pos: {self.rect.x}, {self.rect.y}, vel_y={self.vel_y}")
+        on_ground = self.check_collision('vertical', dy)
+
+        # Kiểm tra va chạm trần (lòng đất) khi nhảy
+        if self.vel_y < 0:  # Khi nhảy lên
+            col_left = (self.rect.left) // self.battle_base.tile_width
+            col_right = (self.rect.right - 1) // self.battle_base.tile_width
+            map_width = self.battle_base.map_width
+            layer_ground = self.battle_base.tile_layers[1]
+            for col in range(col_left, col_right + 1):
+                for row in [13, 19, 25]:  # Lòng đất
+                    idx = row * map_width + col
+                    if idx < len(layer_ground) and layer_ground[idx] >= 229:
+                        tile_rect = pygame.Rect(col * self.battle_base.tile_width, row * self.battle_base.tile_height, self.battle_base.tile_width, self.battle_base.tile_height)
+                        if self.rect.colliderect(tile_rect):
+                            self.rect.top = tile_rect.bottom
+                            self.vel_y = 0
+                            print(f"Va chạm trần tại y={tile_rect.bottom}, knight y={self.rect.y}")
+                            break
+                    if self.vel_y == 0:
+                        break
+                if self.vel_y == 0:
+                    break
+
+        if not on_ground and prev_x // self.battle_base.tile_width != self.rect.x // self.battle_base.tile_width:
+            self.in_air = True
+
+        print(f"Knight pos: {self.rect.x}, {self.rect.y}, vel_y={self.vel_y}, rect.bottom={self.rect.bottom}")
+
+        if self.rect.top > map_height_px or self.rect.bottom < 0:
+            self.in_air = True
+            print(f"Knight rơi ra khỏi màn hình tại y={self.rect.y}")
 
     def check_collision(self, direction, value):
         map_width = self.battle_base.map_width
         map_height = self.battle_base.map_height
         tile_width = self.battle_base.tile_width
         tile_height = self.battle_base.tile_height
-
         layer_ground = self.battle_base.tile_layers[1]
         on_ground = False
 
-        for row in range(map_height):
-            for col in range(map_width):
-                idx = row * map_width + col
-                tile = layer_ground[idx]
-                if tile >= 229:
-                    tile_rect = pygame.Rect(col * tile_width, row * tile_height, tile_width, tile_height)
-                    if self.rect.colliderect(tile_rect):
-                        if direction == 'horizontal':
-                            if value > 0:
-                                self.rect.right = tile_rect.left
-                                print(f"Collision right at tile {tile} at ({col}, {row})")
-                            elif value < 0:
-                                self.rect.left = tile_rect.right
-                                print(f"Collision left at tile {tile} at ({col}, {row})")
-                        elif direction == 'vertical':
-                            if value > 0:
+        valid_rows = [12, 18, 24, 30]  # Chỉ mặt đất, không cần lòng đất vì không đứng trên đó
+
+        if direction == 'vertical':
+            col_left = (self.rect.left) // tile_width
+            col_right = (self.rect.right - 1) // tile_width
+            for col in range(col_left, col_right + 1):
+                for row in reversed(valid_rows):  # Kiểm tra từ dưới lên
+                    idx = row * map_width + col
+                    if idx < len(layer_ground) and layer_ground[idx] >= 229:
+                        tile_rect = pygame.Rect(col * tile_width, row * tile_height, tile_width, tile_height)
+                        if self.rect.colliderect(tile_rect):
+                            print(f"Va chạm với ô {layer_ground[idx]} tại ({col}, {row}), tile_rect={tile_rect}")
+                            if value > 0:  # Rơi xuống
                                 self.rect.bottom = tile_rect.top
                                 self.vel_y = 0
                                 self.in_air = False
                                 on_ground = True
-                                print(f"Landing on tile {tile} at ({col}, {row})")
-                            elif value < 0:
-                                self.rect.top = tile_rect.bottom
-                                self.vel_y = 0
-                                print(f"Hitting ceiling at tile {tile} at ({col}, {row})")
+                                print(f"Đáp xuống ô tại y={tile_rect.top}, knight y={self.rect.y}")
+                            break
+                    if on_ground:
+                        break
+                if on_ground:
+                    break
 
-        if direction == 'vertical' and value > 0 and not on_ground:
-            self.in_air = True
-            print(f"No collision, Knight is falling at {self.rect.x}, {self.rect.y}")
+            if value > 0 and not on_ground:
+                self.in_air = True
+                print(f"Không va chạm, knight rơi tại y={self.rect.y}")
 
+        return on_ground
+    
     def update_animation(self):
         cooldown = 100
         if self.action < 0 or self.action >= len(self.animation_list):
