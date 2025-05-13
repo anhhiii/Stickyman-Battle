@@ -1,99 +1,55 @@
-import pygame
-import sys
-import os
-
-# Khởi tạo Pygame
-pygame.init()
-
-# Cấu hình cửa sổ
-WIDTH, HEIGHT = 800, 600
-screen = pygame.display.set_mode((WIDTH, HEIGHT))
-pygame.display.set_caption("Stickyman Battle")
-
-# Lấy thư mục gốc của dự án
-base_path = os.path.dirname(__file__)
-background_path = os.path.join(base_path, "..", "assets", "backgrounds", "1.jpg")
-background = pygame.image.load(background_path)
-
-background = pygame.transform.scale(background, (WIDTH, HEIGHT))
-
-# Khởi tạo font
-base_path = os.path.dirname(__file__)  # Lấy đường dẫn thư mục hiện tại của file main.py
-title_font_path = os.path.join(base_path, "..", "assets", "fonts", "RubikGlitch-Regular.ttf")
-title_font = pygame.font.Font(title_font_path, 80)
-
-menu_font_path = os.path.join(base_path, "..", "assets", "fonts", "CourierPrime-Regular.ttf")
-menu_font = pygame.font.Font(menu_font_path, 40)
-
-# Hàm vẽ văn bản
-def draw_text(text, font, color, surface, x, y):
-    """Vẽ chữ lên màn hình."""
-    text_obj = font.render(text, True, color)
-    text_rect = text_obj.get_rect(center=(x, y))
-    surface.blit(text_obj, text_rect)
-
-# Hàm tạo menu chọn màn chơi
-def level_selection():
-    """Hiển thị menu chọn màn chơi."""
-    selected_level = None
-    while selected_level is None:
-        screen.blit(background, (0, 0))
-        draw_text("SELECT LEVEL", title_font, (255, 255, 0), screen, WIDTH // 2, HEIGHT // 4)
-        draw_text("1. Level 1", menu_font, (255, 255, 255), screen, WIDTH // 2, HEIGHT // 2 - 50)
-        draw_text("2. Level 2", menu_font, (255, 255, 255), screen, WIDTH // 2, HEIGHT // 2)
-        draw_text("3. Back to Menu", menu_font, (255, 255, 255), screen, WIDTH // 2, HEIGHT // 2 + 50)
-
-        pygame.display.flip()
-
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                pygame.quit()
-                sys.exit()
-            if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_1:
-                    selected_level = "level1.json"
-                elif event.key == pygame.K_2:
-                    selected_level = "level2.json"
-                elif event.key == pygame.K_3:
-                    return None  # Quay lại menu
-
-    return selected_level
+# Import class hoặc hàm từ các file trong thư mục khác
+import pygame  # Thư viện game
+import sys     # Để thoát chương trình
+import os      # Để xử lý đường dẫn
 
 
-# Hàm tạo menu chính
-def main_menu():
-    """Hiển thị menu chính."""
+
+
+# Import Background từ thư mục src/scenes
+from src.scenes.background import Background
+from src.scenes.menu import Menu
+from src.scenes.battle_level1 import BattleLevel1
+from src.scenes.battle_level2 import BattleLevel2
+from src.scenes.battle_level3 import BattleLevel3
+from src.scenes.battle_boss import BattleBoss
+
+
+def main():
+    pygame.init()
+    pygame.mixer.init()
+    screen = pygame.display.set_mode((800, 600), pygame.RESIZABLE)
+    pygame.display.set_caption("STICKY MAN")
+
+    current_scene = "background"
     while True:
-        screen.blit(background, (0, 0))
-        draw_text("STICK MAN", title_font, (255, 0, 0), screen, WIDTH // 2, HEIGHT // 3)
-        draw_text("Start new journey", menu_font, (255, 255, 255), screen, WIDTH // 2, HEIGHT // 2)
+        if current_scene == "background":
+            background = Background(screen)
+            current_scene = background.run()
 
-        pygame.display.flip()
+        elif current_scene == "menu":
+            from src.scenes.menu import Menu
+            menu_scene = Menu(screen)
+            current_scene = menu_scene.run()
+        
+        if current_scene == "level1":
+            battle = BattleLevel1(screen)
+            current_scene = battle.run()
+        elif current_scene == "level2":
+            battle = BattleLevel2(screen)
+            current_scene = battle.run()
+        elif current_scene == "level3":
+            battle = BattleLevel3(screen)
+            current_scene = battle.run()
+        elif current_scene == "boss":
+            battle = BattleBoss(screen)
+            current_scene = battle.run()
 
-        # Xử lý sự kiện trong menu
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                pygame.quit()
-                sys.exit()
-            if event.type == pygame.KEYDOWN or event.type == pygame.MOUSEBUTTONDOWN:
-                return  # Thoát menu và vào game
 
-# Hàm chính của game
-def game_loop():
-    """Vòng lặp game chính."""
-    running = True
-    while running:
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                running = False
 
-        screen.fill((0, 0, 0))
-        pygame.display.flip()
+        elif current_scene == "quit":
+            pygame.quit()
+            sys.exit()
 
-    pygame.quit()
-    sys.exit()
-
-# Chạy game
-main_menu()  # Bắt đầu từ menu
-selected_level = level_selection()  # Vào chọn màn
-game_loop()  # Sau đó vào game
+if __name__ == "__main__":
+    main()
