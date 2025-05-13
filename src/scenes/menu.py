@@ -39,10 +39,11 @@ class Menu:
         project_root = os.path.dirname(os.path.dirname(current_dir))
         menu_path = os.path.join(project_root, 'assets', 'backgrounds', '6.png')
         self.original_bg_image = pygame.image.load(menu_path)
+        self.WINDOW_WIDTH, self.WINDOW_HEIGHT = 800, 608
+        self.bg_image = pygame.transform.scale(self.original_bg_image, (self.WINDOW_WIDTH, self.WINDOW_HEIGHT))
 
     def update_layout(self):
-        self.WINDOW_WIDTH, self.WINDOW_HEIGHT = self.screen.get_size()
-        self.bg_image = pygame.transform.scale(self.original_bg_image, (self.WINDOW_WIDTH, self.WINDOW_HEIGHT))
+        self.WINDOW_WIDTH, self.WINDOW_HEIGHT = 800, 608
         self.arrow_left.topleft = (50, self.WINDOW_HEIGHT // 2 - 25)
         self.arrow_right.topleft = (self.WINDOW_WIDTH - 100, self.WINDOW_HEIGHT // 2 - 25)
         self.create_buttons()
@@ -103,7 +104,6 @@ class Menu:
                 lock_scaled = pygame.transform.smoothscale(self.lock_image, (rect.width, rect.height))
                 self.screen.blit(lock_scaled, rect.topleft)
 
-        # Vẽ khung bao
         if self.buttons:
             margin = 20
             left = self.buttons[0].left - margin
@@ -112,7 +112,6 @@ class Menu:
             bottom = self.buttons[-1].bottom + margin
             pygame.draw.rect(self.screen, (255, 255, 255), (left, top, right - left, bottom - top), width=3, border_radius=15)
 
-        # Vẽ mũi tên
         pygame.draw.polygon(self.screen, (255, 255, 255), [
             (self.arrow_left.right, self.arrow_left.top),
             (self.arrow_left.left, self.arrow_left.centery),
@@ -134,11 +133,6 @@ class Menu:
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     return "quit"
-
-                elif event.type == pygame.VIDEORESIZE:
-                    self.screen = pygame.display.set_mode((event.w, event.h), pygame.RESIZABLE)
-                    self.update_layout()
-                    self.settings_button.update_position(self.screen)
 
                 elif event.type == pygame.MOUSEBUTTONDOWN:
                     result = self.settings_button.handle_event(event)

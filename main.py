@@ -4,6 +4,8 @@ import sys     # Để thoát chương trình
 import os      # Để xử lý đường dẫn
 
 
+
+
 # Import Background từ thư mục src/scenes
 from src.scenes.background import Background
 from src.scenes.menu import Menu
@@ -16,7 +18,7 @@ from src.scenes.battle_boss import BattleBoss
 def main():
     pygame.init()
     pygame.mixer.init()
-    screen = pygame.display.set_mode((800, 600), pygame.RESIZABLE)
+    screen = pygame.display.set_mode((800, 608))
     pygame.display.set_caption("STICKY MAN")
 
     current_scene = "background"
