@@ -3,7 +3,9 @@ from src.scenes.battle_base import BattleBase
 from src.components.music_manager import MusicManager
 from src.entities.knight import Knight
 from src.entities.slime import Slime
+from src.ui.settings_menu import SettingsMenu  # Import lớp SettingsMenu
 import os
+import sys
 
 class BattleLevel1(BattleBase):
     def __init__(self, screen, health_bar, player_health):
@@ -11,6 +13,11 @@ class BattleLevel1(BattleBase):
         self.screen = screen
         self.health_bar = health_bar
         self.player_health = player_health
+<<<<<<< Updated upstream
+=======
+        self.running = True
+        self.paused = False  # Trạng thái tạm dừng
+>>>>>>> Stashed changes
 
         current_dir = os.path.dirname(os.path.abspath(__file__))
         project_root = os.path.dirname(os.path.dirname(current_dir))
@@ -49,13 +56,28 @@ class BattleLevel1(BattleBase):
         self.screen_width = screen.get_width()
         self.screen_height = screen.get_height()
 
+        # Tải icon cài đặt
+        self.settings_icon = pygame.image.load("assets/icons/settings_icon.png")
+        self.settings_icon = pygame.transform.scale(self.settings_icon, (30, 30))  # Resize icon nhỏ hơn
+        self.settings_button = pygame.Rect(750, 10, 30, 30)  # Vị trí và kích thước nút Settings
+
+        # Tải icon Pause
+        self.pause_icon = pygame.image.load("assets/icons/pause_icon.png")
+        self.pause_icon = pygame.transform.scale(self.pause_icon, (30, 30))  # Resize icon nhỏ hơn
+        self.pause_button = pygame.Rect(700, 10, 30, 30)  # Vị trí và kích thước nút Pause
+
+        # Tải icon Continue
+        self.continue_icon = pygame.image.load("assets/icons/continue_icon.png")
+        self.continue_icon = pygame.transform.scale(self.continue_icon, (30, 30))  # Resize icon nhỏ hơn
+        self.continue_button = pygame.Rect(650, 10, 30, 30)  # Vị trí và kích thước nút Continue
+
     def run(self):
         clock = pygame.time.Clock()
         while self.running:
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
-                    self.running = False
-                    return "quit"
+                    pygame.quit()
+                    sys.exit()
                 elif event.type == pygame.KEYDOWN:
                     if event.key == pygame.K_ESCAPE:
                         return "menu"
@@ -76,6 +98,8 @@ class BattleLevel1(BattleBase):
                         self.player.crouch = True
                     if event.key == pygame.K_e:
                         self.player.dash = True
+                    if event.key == pygame.K_p:  # Nhấn phím P để tạm dừng
+                        self.paused = not self.paused
                 elif event.type == pygame.KEYUP:
                     if event.key == pygame.K_a:
                         self.moving_left = False
@@ -89,65 +113,49 @@ class BattleLevel1(BattleBase):
                         self.player.crouch = False
                     if event.key == pygame.K_e:
                         self.player.dash = False
+                elif event.type == pygame.MOUSEBUTTONDOWN:
+                    if self.settings_button.collidepoint(event.pos):
+                        # Hiển thị menu cài đặt
+                        settings_menu = SettingsMenu(self.screen)
+                        result = settings_menu.run()
+                        if result == "menu":
+                            return "menu"  # Quay lại menu chính
+                        elif result == "back":
+                            continue  # Quay lại màn chơi
+                    elif self.pause_button.collidepoint(event.pos):  # Nhấn vào nút Pause
+                        self.paused = True  # Tạm dừng game
+                    elif self.continue_button.collidepoint(event.pos):  # Nhấn vào nút Continue
+                        self.paused = False  # Tiếp tục game
 
-            if self.player.alive:
-                self.player.move(self.moving_left, self.moving_right)
-                # Cập nhật camera offset
-                map_width_px = self.map_width * self.tile_width
-                map_height_px = self.map_height * self.tile_height
+            if not self.paused:
+                # Xử lý logic game khi không tạm dừng
+                if self.player.alive:
+                    self.player.move(self.moving_left, self.moving_right)
+                    # Cập nhật camera offset
+                    map_width_px = self.map_width * self.tile_width
+                    map_height_px = self.map_height * self.tile_height
 
-                # Giữ Knight gần trung tâm màn hình
-                target_x = self.player.rect.centerx - self.screen_width // 2
-                target_y = self.player.rect.centery - self.screen_height // 2
+                    # Giữ Knight gần trung tâm màn hình
+                    target_x = self.player.rect.centerx - self.screen_width // 2
+                    target_y = self.player.rect.centery - self.screen_height // 2
 
-                # Giới hạn camera trong ranh giới bản đồ
-                self.camera_offset[0] = max(0, min(target_x, map_width_px - self.screen_width))
-                self.camera_offset[1] = max(0, min(target_y, map_height_px - self.screen_height))
-                print(f"Camera offset: {self.camera_offset}")
+                    # Giới hạn camera trong ranh giới bản đồ
+                    self.camera_offset[0] = max(0, min(target_x, map_width_px - self.screen_width))
+                    self.camera_offset[1] = max(0, min(target_y, map_height_px - self.screen_height))
 
-                if self.player.attack and self.player.in_air:
-                    self.player.update_action(11)  # JumpAttack
-                elif self.player.attack:
-                    if self.player.action != 4:
-                        self.player.update_action(4)   # Attack
-                    for slime in self.slime_list:
-                        if slime.alive and self.player.rect.colliderect(slime.rect):
-                            slime.health -= 10
-                            slime.update_action(2)  # Hurt
-                            slime.check_alive()
-                elif self.player.block:
-                    self.player.update_action(5)   # Block
-                elif self.player.cast:
-                    self.player.update_action(6)   # Cast
-                elif self.player.crouch:
-                    self.player.update_action(7)   # Crouch
-                elif self.player.dash:
-                    self.player.update_action(8)   # Dash
-                elif self.player.health <= 50 and not self.player.in_air:
-                    self.player.update_action(9)   # Dizzy
-                elif self.player.health <= 70 and not self.player.in_air:
-                    self.player.update_action(10)  # Hurt
-                elif self.player.in_air and self.player.vel_y > 1:
-                    self.player.update_action(2)   # Jump
-                elif self.moving_left or self.moving_right:
-                    self.player.update_action(1)   # Walk
-                else:
-                    self.player.update_action(0)   # Idle
+                # Cập nhật slime
+                for slime in self.slime_list:
+                    if slime.alive:
+                        slime.move()
+                    slime.update_animation()
+                    slime.check_alive()
 
-            # Cập nhật slime
-            for slime in self.slime_list:
-                if slime.alive:
-                    slime.move()
-                    if slime.in_air:
-                        slime.update_action(1)  # Jump
-                    else:
-                        slime.update_action(0)  # Idle
-                else:
-                    if slime.action != 3:
-                        slime.update_action(3)  # Death
-                slime.update_animation()
-                slime.check_alive()
+                # Kiểm tra va chạm với slime
+                if pygame.sprite.spritecollide(self.player, self.enemy_group, False):
+                    self.player_health -= self.health_bar.max_health / 3
+                    self.health_bar.set_health(self.player_health)
 
+<<<<<<< Updated upstream
             self.draw()
             self.player_group.draw(self.screen)
             self.enemy_group.draw(self.screen)
@@ -155,9 +163,37 @@ class BattleLevel1(BattleBase):
             self.health_bar.draw(self.screen)
             pygame.display.flip()
             clock.tick(60)
+=======
+                # Kiểm tra rơi khỏi màn hình
+                if self.player.rect.top > self.screen.get_height():
+                    self.player_health = 0
+                    self.health_bar.set_health(self.player_health)
+
+                self.draw()
+                self.player_group.draw(self.screen)
+                self.enemy_group.draw(self.screen)
+                self.health_bar.set_health(self.player_health)
+                self.health_bar.draw(self.screen)
+                pygame.display.flip()
+                clock.tick(60)
+            else:
+                # Khi game tạm dừng
+                self.draw()
+                pygame.display.flip()
+                clock.tick(60)
+>>>>>>> Stashed changes
 
     def draw(self):
         self.screen.fill((0, 0, 0))  # Xóa màn hình
 
         # Truyền camera_offset vào BattleBase.draw
         super().draw(self.camera_offset)
+
+        # Vẽ icon cài đặt
+        self.screen.blit(self.settings_icon, (self.settings_button.x, self.settings_button.y))
+
+        # Vẽ icon Pause
+        self.screen.blit(self.pause_icon, (self.pause_button.x, self.pause_button.y))
+
+        # Vẽ icon Continue
+        self.screen.blit(self.continue_icon, (self.continue_button.x, self.continue_button.y))
