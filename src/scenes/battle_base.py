@@ -15,7 +15,6 @@ class BattleBase:
         self.tile_layers = []
         self.object_layers = []
 
-
         self.load_level(level_name)
         self.load_tiles()
 

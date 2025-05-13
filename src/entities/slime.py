@@ -2,7 +2,7 @@ import pygame
 import os
 
 class Slime(pygame.sprite.Sprite):
-    def __init__(self, x, y, scale, speed, battle_base):
+    def __init__(self, x, y, scale, speed, battle_base, move_area=None):
         pygame.sprite.Sprite.__init__(self)
         self.alive = True
         self.speed = speed
@@ -15,18 +15,17 @@ class Slime(pygame.sprite.Sprite):
         self.frame_index = 0
         self.action = 0  # 0: Idle, 1: Jump, 2: Hurt, 3: Death
         self.update_time = pygame.time.get_ticks()
-        self.health = 30  # Máu của slime
+        self.health = 30
         self.battle_base = battle_base
+        self.move_area = move_area
 
-        # Số khung hình cho từng trạng thái (dựa trên file thực tế)
         self.frame_counts = {
             'Idle': 7,
-            'Jump': 6,  # Chỉ dùng Jump_Land cho simplicity
+            'Jump': 6,
             'Hurt': 11,
             'Death': 14
         }
 
-        # Định nghĩa các trạng thái hoạt hình
         self.animation_types = ['Idle', 'Jump', 'Hurt', 'Death']
         for animation in self.animation_types:
             temp_list = []
@@ -35,40 +34,24 @@ class Slime(pygame.sprite.Sprite):
             sprite_path = os.path.join(project_root, 'assets', 'sprites', 'slime', animation.lower())
 
             frame_count = self.frame_counts[animation]
-            try:
-                for i in range(frame_count):
-                    img_path = os.path.join(sprite_path, f"{animation.capitalize()}_{i}.png")
-                    if animation.lower() == 'jump':
-                        img_path = os.path.join(sprite_path, f"Jump_Land_{i}.png")
-                    if not os.path.exists(img_path):
-                        print(f"Sprite file missing: {img_path}")
-                        continue
+            for i in range(frame_count):
+                img_path = os.path.join(sprite_path, f"{animation.capitalize()}_{i}.png")
+                if animation.lower() == 'jump':
+                    img_path = os.path.join(sprite_path, f"Jump_Land_{i}.png")
+                if os.path.exists(img_path):
                     img = pygame.image.load(img_path).convert_alpha()
-                    # Scale khung hình
                     img = pygame.transform.scale(img, (int(img.get_width() * scale), int(img.get_height() * scale)))
                     temp_list.append(img)
-                if not temp_list:
-                    print(f"No valid sprites loaded for {animation}")
-            except Exception as e:
-                print(f"Error loading sprites for {animation}: {e}")
-                temp_list.append(pygame.Surface((32, 32)))  # Placeholder 32x32
-            self.animation_list.append(temp_list)
+            self.animation_list.append(temp_list if temp_list else [pygame.Surface((32, 32))])
 
-        if not self.animation_list or not self.animation_list[0]:
-            print("Error: No sprites loaded for slime!")
-            self.image = pygame.Surface((32, 32))
-            self.image.fill((0, 255, 0))
-        else:
-            self.image = self.animation_list[self.action][self.frame_index]
+        self.image = self.animation_list[self.action][self.frame_index]
         self.rect = self.image.get_rect()
-        self.rect.bottomleft = (x, y)  # Đảm bảo chân chạm đất
-        print(f"Slime initialized at position: {self.rect.topleft}, size: {self.rect.width}x{self.rect.height}")
+        self.rect.bottomleft = (x, y)
 
     def move(self):
         dx = self.speed * self.direction
         dy = 0
 
-        # Áp dụng trọng lực
         self.vel_y += 0.75
         if self.vel_y > 10:
             self.vel_y = 10
@@ -79,17 +62,16 @@ class Slime(pygame.sprite.Sprite):
         self.rect.y += dy
         self.check_collision('vertical', dy)
 
-        # Đổi hướng khi chạm biên màn hình
-        if self.rect.left < 200:
-            self.rect.left = 200
-            self.direction *= -1
-            self.flip = not self.flip
-        if self.rect.right > 600:
-            self.rect.right = 600
-            self.direction *= -1
-            self.flip = not self.flip
+        if self.move_area:
+            if self.rect.left < self.move_area.left:
+                self.rect.left = self.move_area.left
+                self.direction *= -1
+                self.flip = not self.flip
+            if self.rect.right > self.move_area.right:
+                self.rect.right = self.move_area.right
+                self.direction *= -1
+                self.flip = not self.flip
 
-        # Giới hạn trong màn hình
         if self.rect.top < 0:
             self.rect.top = 0
             self.vel_y = 0
@@ -97,9 +79,9 @@ class Slime(pygame.sprite.Sprite):
             self.rect.bottom = 600
             self.vel_y = 0
             self.in_air = False
-        if not self.alive:
-            return  # Dừng cập nhật di chuyển nếu slime đã chết
 
+        if not self.alive:
+            return
 
     def check_collision(self, direction, move_value):
         map_width = self.battle_base.map_width
@@ -107,87 +89,50 @@ class Slime(pygame.sprite.Sprite):
         tile_width = self.battle_base.tile_width
         tile_height = self.battle_base.tile_height
         tile_layers = self.battle_base.tile_layers
+        layer = tile_layers[1]
 
-        layer_idx = 1  # Layer "map"
-        layer = tile_layers[layer_idx]
-
-        start_col = max(0, (self.rect.left - tile_width) // tile_width)
-        end_col = min(map_width, (self.rect.right + tile_width) // tile_width)
-        start_row = max(0, (self.rect.top - tile_height) // tile_height)
-        end_row = min(map_height, (self.rect.bottom + tile_height) // tile_height)
-
-        for row in range(start_row, end_row):
-            for col in range(start_col, end_col):
+        for row in range(map_height):
+            for col in range(map_width):
                 idx = row * map_width + col
                 tile = layer[idx]
                 if tile > 0:
                     tile_rect = pygame.Rect(col * tile_width, row * tile_height, tile_width, tile_height)
-                    if direction == 'horizontal':
-                        if self.rect.colliderect(tile_rect):
-                            if move_value > 0 and self.rect.right > tile_rect.left:
+                    if self.rect.colliderect(tile_rect):
+                        if direction == 'horizontal':
+                            if move_value > 0:
                                 self.rect.right = tile_rect.left
-                                self.direction *= -1
-                                self.flip = not self.flip
-                                # print(f"Slime collision (right) with tile at ({col * tile_width}, {row * tile_height})")
-                            elif move_value < 0 and self.rect.left < tile_rect.right:
+                            elif move_value < 0:
                                 self.rect.left = tile_rect.right
-                                self.direction *= -1
-                                self.flip = not self.flip
-                                # print(f"Slime collision (left) with tile at ({col * tile_width}, {row * tile_height})")
-                    elif direction == 'vertical':
-                        if self.rect.colliderect(tile_rect):
-                            if move_value > 0 and self.rect.bottom > tile_rect.top:
+                        elif direction == 'vertical':
+                            if move_value > 0:
                                 self.rect.bottom = tile_rect.top
                                 self.vel_y = 0
                                 self.in_air = False
-                                # print(f"Slime collision (bottom) with tile at ({col * tile_width}, {row * tile_height})")
-                            elif move_value < 0 and self.rect.top < tile_rect.bottom:
+                            elif move_value < 0:
                                 self.rect.top = tile_rect.bottom
                                 self.vel_y = 0
-                                # print(f"Slime collision (top) with tile at ({col * tile_width}, {row * tile_height})")
 
     def update_animation(self):
-        ANIMATION_COOLDOWN = 100
-        bottomleft = self.rect.bottomleft
+        cooldown = 100
         self.image = self.animation_list[self.action][self.frame_index]
-        self.rect = self.image.get_rect()
-        self.rect.bottomleft = bottomleft
-
-        if len(self.animation_list[self.action]) == 0:
-            return
-
-        if pygame.time.get_ticks() - self.update_time > ANIMATION_COOLDOWN:
+        if pygame.time.get_ticks() - self.update_time > cooldown:
             self.update_time = pygame.time.get_ticks()
             self.frame_index += 1
-
-            if self.frame_index >= len(self.animation_list[self.action]):
-                # Nếu đang Hurt thì quay lại Idle
-                if self.action == 2:  # Hurt
-                    self.update_action(0)  # Trở lại Idle
-                elif self.action == 3:  # Death
-                    self.frame_index = len(self.animation_list[self.action]) - 1
-                else:
-                    self.frame_index = 0
-                if not self.alive:
-                    return  # Không update animation nếu đã chết
-
-
-        # print(f"Slime animation updated: action={self.action}, frame={self.frame_index}")
+        if self.frame_index >= len(self.animation_list[self.action]):
+            self.frame_index = 0
 
     def update_action(self, new_action):
         if new_action != self.action:
             self.action = new_action
             self.frame_index = 0
             self.update_time = pygame.time.get_ticks()
-            # print(f"Slime switching to action {self.action} with {len(self.animation_list[self.action])} frames")
 
     def check_alive(self):
         if self.health <= 0:
             self.health = 0
             self.speed = 0
             self.alive = False
-            self.update_action(3)  # Death
+            self.update_action(3)
 
     def draw(self, screen):
         screen.blit(pygame.transform.flip(self.image, self.flip, False), self.rect)
-        print(f"Slime drawn at: {self.rect.topleft}")

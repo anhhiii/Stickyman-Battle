@@ -37,8 +37,7 @@ class BattleLevel1(BattleBase):
                     self.player_group = pygame.sprite.Group(self.player)
                     print(f"[Knight] Spawned at {x}, {y}")
                 elif "slime" in name:
-                    move_area = pygame.Rect(x - 100, y - 50, 200, 100)  # phạm vi di chuyển riêng của mỗi slime
-                    slime = Slime(x, y, 1.0, 2, self, move_area=move_area)
+                    slime = Slime(x, y, 1.0, 2, self)
                     self.slime_list.append(slime)
                     print(f"[Slime] Spawned: {name} at {x}, {y}")
 
@@ -71,13 +70,6 @@ class BattleLevel1(BattleBase):
         self.continue_icon = pygame.image.load(os.path.join(icon_dir, "continue_icon.png"))
         self.continue_icon = pygame.transform.scale(self.continue_icon, (30, 30))
         self.continue_button = pygame.Rect(650, 10, 30, 30)
-
-        BGDoor_dir = os.path.join(project_root, 'assets', 'backgrounds')
-        self.BGDoor = pygame.image.load(os.path.join(BGDoor_dir, "BGDoor.png"))
-        self.BGDoor = pygame.transform.scale(self.BGDoor, (64, 64))  # hoặc giữ nguyên
-        pos_x = 64 - 64 - self.camera_offset[0]
-        pos_y = 140 - self.camera_offset[1]
-        self.screen.blit(self.BGDoor, (pos_x, pos_y))
 
     def run(self):
         clock = pygame.time.Clock()
@@ -191,23 +183,22 @@ class BattleLevel1(BattleBase):
                 slime.update_animation()
                 slime.check_alive()
 
+            # Đồng bộ health và alive với BattleLevel1
+            self.player_health = self.player.health
+            self.health_bar.set_health(self.player_health)
+
             # Kiểm tra trạng thái sống của Knight và gọi GameOverScreen nếu chết
             if not self.player.alive:
-                self.player_health = 0
+                self.player_health = 0  # Đảm bảo thanh máu hiển thị đúng
                 self.health_bar.set_health(self.player_health)
                 game_over_screen = GameOverScreen(self.screen)
                 result = game_over_screen.run()
                 if result == "restart":
-                    return "restart"
+                    return "restart"  # Khởi động lại level
                 elif result == "menu":
-                    return "menu"
+                    return "menu"  # Quay về menu
                 elif result == "quit":
                     self.running = False
-            else:
-                self.player_health = self.player.health
-                self.health_bar.set_health(self.player_health)
-
-
 
             self.draw()
             pygame.display.flip()
@@ -229,12 +220,9 @@ class BattleLevel1(BattleBase):
         self.screen.blit(self.settings_icon, (self.settings_button.x, self.settings_button.y))
         self.screen.blit(self.pause_icon, (self.pause_button.x, self.pause_button.y))
         self.screen.blit(self.continue_icon, (self.continue_button.x, self.continue_button.y))
-        self.screen.blit(self.BGDoor, (64 - 64 - self.camera_offset[0], 140 - self.camera_offset[1]))
 
         if self.paused:
             font = pygame.font.SysFont('Arial', 36, bold=True)
             pause_text = font.render("PAUSED", True, (255, 255, 255))
             text_rect = pause_text.get_rect(center=(self.screen_width // 2, self.screen_height // 2))
             self.screen.blit(pause_text, text_rect)
-
-        
