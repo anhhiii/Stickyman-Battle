@@ -1,9 +1,8 @@
 import pygame
 import os
-import time
 
 class Knight(pygame.sprite.Sprite):
-    def __init__(self, x, y, scale, speed, battle_base, health_bar=None, screen=None):
+    def __init__(self, x, y, scale, speed, battle_base):
         pygame.sprite.Sprite.__init__(self)
         self.alive = True
         self.speed = speed
@@ -23,9 +22,6 @@ class Knight(pygame.sprite.Sprite):
         self.update_time = pygame.time.get_ticks()
         self.health = 100
         self.battle_base = battle_base
-        self.health_bar = health_bar
-        self.screen = screen
-        self.last_hit_time = 0  # Để tránh bị trừ máu liên tục
 
         self.animation_types = ['Idle', 'Walk', 'Jump', 'Attack']
         for animation in self.animation_types:
@@ -121,21 +117,6 @@ class Knight(pygame.sprite.Sprite):
         # Nếu không va chạm, đảm bảo Knight vẫn ở trạng thái rơi
         if direction == 'vertical' and value > 0 and self.in_air:
             print(f"No collision, Knight is falling at {self.rect.x}, {self.rect.y}")
-
-    def check_hit_by_slime(self, slime_group):
-        now = pygame.time.get_ticks()
-        if pygame.sprite.spritecollide(self, slime_group, False):
-            # Chỉ trừ máu nếu đã qua 1 giây từ lần bị đánh trước
-            if now - self.last_hit_time > 1000:
-                self.health -= self.health_bar.max_health / 3
-                self.health_bar.set_health(self.health)
-                self.last_hit_time = now
-
-    def check_fall_off_screen(self):
-        if self.rect.top > self.screen.get_height():
-            self.health = 0
-            self.health_bar.set_health(self.health)
-            self.check_alive()  # Gọi hàm chết luôn
 
     def update_animation(self):
         cooldown = 100
