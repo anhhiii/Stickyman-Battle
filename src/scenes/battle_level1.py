@@ -3,6 +3,8 @@ from src.scenes.battle_base import BattleBase
 from src.components.music_manager import MusicManager
 from src.entities.knight import Knight
 from src.entities.slime import Slime
+from src.ai.algorithms import bfs_path
+
 import os
 
 class BattleLevel1(BattleBase):
@@ -30,7 +32,7 @@ class BattleLevel1(BattleBase):
                     self.player_group = pygame.sprite.Group(self.player)
                     print(f"[Knight] Spawned at {x}, {y}")
                 elif "slime" in name:
-                    slime = Slime(x, y, 1.0, 2, self)
+                    slime = Slime(x, y, 1.0, 2, self, name=name)
                     self.slime_list.append(slime)
                     print(f"[Slime] Spawned: {name} at {x}, {y}")
 
