@@ -15,6 +15,11 @@ class BattleLevel1(BattleBase):
         self.player_health = player_health
 <<<<<<< Updated upstream
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
+=======
+        self.running = True
+        self.paused = False  # Trạng thái tạm dừng
+>>>>>>> Stashed changes
 =======
         self.running = True
         self.paused = False  # Trạng thái tạm dừng
@@ -162,6 +167,7 @@ class BattleLevel1(BattleBase):
 
 <<<<<<< Updated upstream
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
             self.draw()
             self.player_group.draw(self.screen)
             self.enemy_group.draw(self.screen)
@@ -170,6 +176,8 @@ class BattleLevel1(BattleBase):
             pygame.display.flip()
             clock.tick(60)
 =======
+=======
+>>>>>>> Stashed changes
 =======
 >>>>>>> Stashed changes
                 # Kiểm tra rơi khỏi màn hình
@@ -190,6 +198,9 @@ class BattleLevel1(BattleBase):
                 pygame.display.flip()
                 clock.tick(60)
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
 =======
 >>>>>>> Stashed changes
