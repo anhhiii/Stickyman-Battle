@@ -252,6 +252,30 @@ class BattleLevel1(BattleBase):
                 obj["height"]
             )
             pygame.draw.rect(self.screen, debug_color_gnd, rect, 2)
+        
+        # DEBUG: Vẽ khung slime
+        for slime in self.slime_list:
+            pygame.draw.rect(
+                self.screen,
+                (255, 255, 0),  # màu vàng
+                pygame.Rect(
+                    slime.rect.x - self.camera_offset[0],
+                    slime.rect.y - self.camera_offset[1],
+                    slime.rect.width,
+                    slime.rect.height
+                ),
+                2
+            )
+        for slime in self.slime_list:
+            detect_range = 96  # Đồng bộ với detect_range trong SlimeAI
+            detection_rect = pygame.Rect(
+                slime.rect.centerx - detect_range - self.camera_offset[0],
+                slime.rect.centery - 32 - self.camera_offset[1],
+                detect_range * 2,
+                64
+            )
+            pygame.draw.rect(self.screen, (255, 255, 255), detection_rect, 1)  # khung trắng
+        # =============================================================
 
         if self.door_pos:
             door_x = self.door_pos[0] - self.camera_offset[0]
