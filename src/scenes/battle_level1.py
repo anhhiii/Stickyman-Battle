@@ -5,6 +5,7 @@ from src.entities.knight import Knight
 from src.entities.slime import Slime
 from src.ui.settings_menu import SettingsMenu
 from src.ui.game_over import GameOverScreen
+from src.components.level_manager import LevelLogicManager
 import os
 
 class BattleLevel1(BattleBase):
@@ -15,6 +16,10 @@ class BattleLevel1(BattleBase):
         self.player_health = player_health
         self.running = True
         self.paused = False
+        self.door_pos = None
+        self.player = None
+        self.slime_list = []
+        self.logic_manager = LevelLogicManager(self.slime_list)
 
         current_dir = os.path.dirname(os.path.abspath(__file__))
         project_root = os.path.dirname(os.path.dirname(current_dir))
@@ -24,23 +29,29 @@ class BattleLevel1(BattleBase):
         self.music_manager.play_music(music_path)
 
         # Khởi tạo các đối tượng từ object layer
-        self.player = None
-        self.slime_list = []
-        for layer in self.object_layers:
-            for obj in layer:
-                name = obj.get("name", "").lower()
-                x = int(obj["x"])
-                y = int(obj["y"])
+        BGDoor_dir = os.path.join(project_root, 'assets', 'backgrounds')
+        self.BGDoor = pygame.image.load(os.path.join(BGDoor_dir, "BGDoor.png")).convert_alpha()
+        self.BGDoor = pygame.transform.scale(self.BGDoor, (96, 96))
 
-                if name == "player":
-                    self.player = Knight(x, y, scale=0.35, speed=3, battle_base=self)
-                    self.player_group = pygame.sprite.Group(self.player)
-                    print(f"[Knight] Spawned at {x}, {y}")
-                elif "slime" in name:
-                    move_area = pygame.Rect(x - 100, y - 50, 200, 100)  # phạm vi di chuyển riêng của mỗi slime
-                    slime = Slime(x, y, 1.0, 2, self, move_area=move_area)
-                    self.slime_list.append(slime)
-                    print(f"[Slime] Spawned: {name} at {x}, {y}")
+        for obj in self.spawn_objects:
+            x = int(obj["x"])
+            y = int(obj["y"])
+            props = obj["properties"]
+            
+            if props.get("win") == "yes":
+                self.door_pos = (obj["x"], obj["y"])
+                print(f"[Door] Found at {self.door_pos}")
+
+
+            if props.get("player") == "yes":
+                self.player = Knight(x, y, scale=0.35, speed=3, battle_base=self)
+                self.player_group = pygame.sprite.Group(self.player)
+                print(f"[Knight] Spawned at {x}, {y}")
+            elif props.get("enemy") == "yes":
+                move_area = pygame.Rect(x - 100, y - 50, 200, 100)
+                slime = Slime(x, y, 1.0, 2, self, move_area=move_area)
+                self.slime_list.append(slime)
+                print(f"[Slime] Spawned at {x}, {y}")
 
         if not self.player:
             raise ValueError("Không tìm thấy object 'player' trong map!")
@@ -72,16 +83,21 @@ class BattleLevel1(BattleBase):
         self.continue_icon = pygame.transform.scale(self.continue_icon, (30, 30))
         self.continue_button = pygame.Rect(650, 10, 30, 30)
 
-        BGDoor_dir = os.path.join(project_root, 'assets', 'backgrounds')
-        self.BGDoor = pygame.image.load(os.path.join(BGDoor_dir, "BGDoor.png"))
-        self.BGDoor = pygame.transform.scale(self.BGDoor, (64, 64))  # hoặc giữ nguyên
-        pos_x = 64 - 64 - self.camera_offset[0]
-        pos_y = 140 - self.camera_offset[1]
-        self.screen.blit(self.BGDoor, (pos_x, pos_y))
+        
+
+
 
     def run(self):
         clock = pygame.time.Clock()
         while self.running:
+            self.logic_manager.update()
+
+            if self.door_pos:
+                door_rect = pygame.Rect(self.door_pos[0], self.door_pos[1], 32, 32)
+                player_rect = self.player.rect.move(-self.camera_offset[0], -self.camera_offset[1])
+                if self.logic_manager.check_victory(player_rect, door_rect):
+                    return "win"
+                
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     self.running = False
@@ -207,8 +223,6 @@ class BattleLevel1(BattleBase):
                 self.player_health = self.player.health
                 self.health_bar.set_health(self.player_health)
 
-
-
             self.draw()
             pygame.display.flip()
             clock.tick(60)
@@ -216,6 +230,35 @@ class BattleLevel1(BattleBase):
     def draw(self):
         self.screen.fill((0, 0, 0))
         super().draw(self.camera_offset)
+
+        # ========== DEBUG: Vẽ các object trigger (gnd, wall) ==========
+        debug_color_wall = (255, 0, 0)   # đỏ cho wall
+        debug_color_gnd = (0, 255, 0)    # xanh lá cho gnd
+
+        for obj in self.wall_objects:
+            rect = pygame.Rect(
+                obj["x"] - self.camera_offset[0],
+                obj["y"] - self.camera_offset[1],
+                obj["width"],
+                obj["height"]
+            )
+            pygame.draw.rect(self.screen, debug_color_wall, rect, 2)
+
+        for obj in self.ground_objects:
+            rect = pygame.Rect(
+                obj["x"] - self.camera_offset[0],
+                obj["y"] - self.camera_offset[1],
+                obj["width"],
+                obj["height"]
+            )
+            pygame.draw.rect(self.screen, debug_color_gnd, rect, 2)
+
+        if self.door_pos:
+            door_x = self.door_pos[0] - self.camera_offset[0]
+            door_y = self.door_pos[1] - self.BGDoor.get_height() - self.camera_offset[1]
+            print(f"[DRAW] BGDoor at screen coords: {door_x}, {door_y}")
+            pygame.draw.rect(self.screen, (255, 0, 0), pygame.Rect(door_x, door_y, 64, 64), 2)  # Vẽ khung để dễ thấy
+            self.screen.blit(self.BGDoor, (door_x, door_y))
 
         for sprite in self.player_group:
             flipped_image = pygame.transform.flip(sprite.image, sprite.flip, False)
@@ -229,12 +272,20 @@ class BattleLevel1(BattleBase):
         self.screen.blit(self.settings_icon, (self.settings_button.x, self.settings_button.y))
         self.screen.blit(self.pause_icon, (self.pause_button.x, self.pause_button.y))
         self.screen.blit(self.continue_icon, (self.continue_button.x, self.continue_button.y))
-        self.screen.blit(self.BGDoor, (64 - 64 - self.camera_offset[0], 140 - self.camera_offset[1]))
+
 
         if self.paused:
             font = pygame.font.SysFont('Arial', 36, bold=True)
             pause_text = font.render("PAUSED", True, (255, 255, 255))
             text_rect = pause_text.get_rect(center=(self.screen_width // 2, self.screen_height // 2))
             self.screen.blit(pause_text, text_rect)
+
+        pygame.draw.rect(self.screen, (0, 255, 255), (
+        self.player.rect.x - self.camera_offset[0],
+        self.player.rect.y - self.camera_offset[1],
+        self.player.rect.width,
+        self.player.rect.height
+), 2)
+
 
         

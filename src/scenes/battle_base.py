@@ -14,6 +14,10 @@ class BattleBase:
         self.tile_size = 16
         self.tile_layers = []
         self.object_layers = []
+        self.ground_objects = []
+        self.wall_objects = []
+        self.spawn_objects = []
+
 
         self.load_level(level_name)
         self.load_tiles()
@@ -67,9 +71,23 @@ class BattleBase:
                     "x": float(obj.get("x")),
                     "y": float(obj.get("y")),
                     "width": float(obj.get("width", 0)),
-                    "height": float(obj.get("height", 0))
+                    "height": float(obj.get("height", 0)),
+                    "properties": {p.get("name"): p.get("value") for p in obj.findall("properties/property")}
                 }
                 objects.append(obj_data)
+
+                # Phân loại object
+                if obj_data["name"] == "gnd":
+                    self.ground_objects.append(obj_data)
+                elif obj_data["name"] == "wall":
+                    self.wall_objects.append(obj_data)
+                if (
+                    obj_data["properties"].get("player") == "yes"
+                    or obj_data["properties"].get("enemy") == "yes"
+                    or obj_data["properties"].get("win") == "yes"
+                ):
+                    self.spawn_objects.append(obj_data)
+
             self.object_layers.append(objects)
 
     def load_tiles(self):
