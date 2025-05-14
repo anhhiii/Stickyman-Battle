@@ -1,5 +1,6 @@
 import pygame
 import os
+from src.ai.algorithms import bfs_path, greedy_path, hill_climb_step, backtracking_path, q_learning_train, q_learning_step, and_or_search
 
 class Slime(pygame.sprite.Sprite):
     def __init__(self, x, y, scale, speed, battle_base, move_area=None):
@@ -18,7 +19,13 @@ class Slime(pygame.sprite.Sprite):
         self.health = 30
         self.battle_base = battle_base
         self.move_area = move_area
-
+        self.name = "slime_normal"
+        self.q_table = None
+        self.andor_path = []
+        self.andor_index = 0
+        self.bfs_path = []
+        self.path_index = 0
+        self.follow_player = False
         self.frame_counts = {
             'Idle': 7,
             'Jump': 6,
@@ -47,6 +54,176 @@ class Slime(pygame.sprite.Sprite):
         self.image = self.animation_list[self.action][self.frame_index]
         self.rect = self.image.get_rect()
         self.rect.bottomleft = (x, y)
+
+    def update_bfs(self, player, grid):
+        if not self.alive:
+            return
+
+        if abs(self.rect.centerx - player.rect.centerx) < 150:
+            self.follow_player = True
+
+        if self.follow_player:
+            current_tile = (self.rect.centerx // self.battle_base.tile_width,
+                            self.rect.centery // self.battle_base.tile_height)
+            goal_tile = (player.rect.centerx // self.battle_base.tile_width,
+                        player.rect.centery // self.battle_base.tile_height)
+
+            if not self.bfs_path or self.path_index >= len(self.bfs_path):
+                self.bfs_path = bfs_path(current_tile, goal_tile, grid)
+                self.path_index = 0
+
+            if self.bfs_path and self.path_index < len(self.bfs_path):
+                tx, ty = self.bfs_path[self.path_index]
+                target_x = tx * self.battle_base.tile_width
+                if abs(self.rect.centerx - target_x) > 2:
+                    if self.rect.centerx < target_x:
+                        self.rect.x += self.speed
+                        self.flip = False
+                    elif self.rect.centerx > target_x:
+                        self.rect.x -= self.speed
+                        self.flip = True
+                else:
+                    self.path_index += 1
+    def update_greedy(self, player, grid):
+        if not self.alive:
+            return
+
+        if abs(self.rect.centerx - player.rect.centerx) < 150:
+            self.follow_player = True
+
+        if self.follow_player:
+            current_tile = (self.rect.centerx // self.battle_base.tile_width,
+                            self.rect.centery // self.battle_base.tile_height)
+            goal_tile = (player.rect.centerx // self.battle_base.tile_width,
+                        player.rect.centery // self.battle_base.tile_height)
+
+            if not self.bfs_path or self.path_index >= len(self.bfs_path):
+                self.bfs_path = greedy_path(current_tile, goal_tile, grid)
+                self.path_index = 0
+
+            if self.bfs_path and self.path_index < len(self.bfs_path):
+                tx, ty = self.bfs_path[self.path_index]
+                target_x = tx * self.battle_base.tile_width
+                if abs(self.rect.centerx - target_x) > 2:
+                    if self.rect.centerx < target_x:
+                        self.rect.x += self.speed
+                        self.flip = False
+                    elif self.rect.centerx > target_x:
+                        self.rect.x -= self.speed
+                        self.flip = True
+                else:
+                    self.path_index += 1
+
+    def update_hill_climb(self, player, grid):
+        if not self.alive:
+            return
+
+        if abs(self.rect.centerx - player.rect.centerx) < 150:
+            self.follow_player = True
+
+        if self.follow_player:
+            current_tile = (self.rect.centerx // self.battle_base.tile_width,
+                            self.rect.centery // self.battle_base.tile_height)
+            goal_tile = (player.rect.centerx // self.battle_base.tile_width,
+                        player.rect.centery // self.battle_base.tile_height)
+
+            next_tile = hill_climb_step(current_tile, goal_tile, grid)
+            tx = next_tile[0] * self.battle_base.tile_width
+
+            if abs(self.rect.centerx - tx) > 2:
+                if self.rect.centerx < tx:
+                    self.rect.x += self.speed
+                    self.flip = False
+                else:
+                    self.rect.x -= self.speed
+                    self.flip = True
+    def update_backtracking(self, player, grid):
+        if not self.alive:
+            return
+
+        if abs(self.rect.centerx - player.rect.centerx) < 150:
+            self.follow_player = True
+
+        if self.follow_player:
+            current_tile = (self.rect.centerx // self.battle_base.tile_width,
+                            self.rect.centery // self.battle_base.tile_height)
+            goal_tile = (player.rect.centerx // self.battle_base.tile_width,
+                        player.rect.centery // self.battle_base.tile_height)
+
+            if not self.bfs_path or self.path_index >= len(self.bfs_path):
+                self.bfs_path = backtracking_path(current_tile, goal_tile, grid)
+                self.path_index = 0
+
+            if self.bfs_path and self.path_index < len(self.bfs_path):
+                tx, ty = self.bfs_path[self.path_index]
+                target_x = tx * self.battle_base.tile_width
+
+                if abs(self.rect.centerx - target_x) > 2:
+                    if self.rect.centerx < target_x:
+                        self.rect.x += self.speed
+                        self.flip = False
+                    elif self.rect.centerx > target_x:
+                        self.rect.x -= self.speed
+                        self.flip = True
+                else:
+                    self.path_index += 1
+
+    def update_q_learning(self, player, grid):
+        if not self.alive:
+            return
+
+        if abs(self.rect.centerx - player.rect.centerx) < 150:
+            self.follow_player = True
+
+        if self.follow_player:
+            current_tile = (self.rect.centerx // self.battle_base.tile_width,
+                            self.rect.centery // self.battle_base.tile_height)
+            goal_tile = (player.rect.centerx // self.battle_base.tile_width,
+                        player.rect.centery // self.battle_base.tile_height)
+
+            if self.q_table is None:
+                self.q_table = q_learning_train(grid, current_tile, goal_tile)
+
+            next_tile = q_learning_step(self.q_table, current_tile)
+            target_x = next_tile[0] * self.battle_base.tile_width
+
+            if abs(self.rect.centerx - target_x) > 2:
+                if self.rect.centerx < target_x:
+                    self.rect.x += self.speed
+                    self.flip = False
+                elif self.rect.centerx > target_x:
+                    self.rect.x -= self.speed
+                    self.flip = True
+    
+    def update_andor(self, player, grid):
+        if not self.alive:
+            return
+        if abs(self.rect.centerx - player.rect.centerx) < 150:
+            self.follow_player = True
+
+        if self.follow_player:
+            current_tile = (self.rect.centerx // self.battle_base.tile_width,
+                            self.rect.centery // self.battle_base.tile_height)
+            goal_tile = (player.rect.centerx // self.battle_base.tile_width,
+                        player.rect.centery // self.battle_base.tile_height)
+
+            if not self.andor_path or self.andor_index >= len(self.andor_path):
+                self.andor_path = and_or_search(current_tile, goal_tile, grid)
+                self.andor_index = 0
+
+            if self.andor_path and self.andor_index < len(self.andor_path):
+                next_tile = self.andor_path[self.andor_index]
+                target_x = next_tile[0] * self.battle_base.tile_width
+
+                if abs(self.rect.centerx - target_x) > 2:
+                    if self.rect.centerx < target_x:
+                        self.rect.x += self.speed
+                        self.flip = False
+                    elif self.rect.centerx > target_x:
+                        self.rect.x -= self.speed
+                        self.flip = True
+                else:
+                    self.andor_index += 1
 
     def move(self):
         dx = self.speed * self.direction

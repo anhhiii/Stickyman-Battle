@@ -50,6 +50,18 @@ class BattleLevel1(BattleBase):
             elif props.get("enemy") == "yes":
                 move_area = pygame.Rect(x - 100, y - 50, 200, 100)
                 slime = Slime(x, y, 1.0, 2, self, move_area=move_area)
+                if len(self.slime_list) == 0:
+                    slime.name = "slime_bfs"
+                elif len(self.slime_list) == 1:
+                    slime.name = "slime_greedy"
+                elif len(self.slime_list) == 2:
+                    slime.name = "slime_hill"
+                elif len(self.slime_list) == 3:
+                    slime.name = "slime_back"
+                if len(self.slime_list) == 4:
+                    slime.name = "slime_q"
+                if len(self.slime_list) == 5:
+                    slime.name = "slime_andor"
                 self.slime_list.append(slime)
                 print(f"[Slime] Spawned at {x}, {y}")
 
@@ -152,27 +164,24 @@ class BattleLevel1(BattleBase):
                             continue
 
             if self.player.alive and not self.paused:
+                # Di chuyển nhân vật
                 self.player.move(self.moving_left, self.moving_right)
+
+                # Cập nhật camera theo vị trí nhân vật
                 map_width_px = self.map_width * self.tile_width
                 map_height_px = self.map_height * self.tile_height
-
                 target_x = self.player.rect.centerx - self.screen_width // 2
                 target_y = self.player.rect.centery - self.screen_height // 2
-
                 self.camera_offset[0] = max(0, min(target_x, map_width_px - self.screen_width))
                 self.camera_offset[1] = max(0, min(target_y, map_height_px - self.screen_height))
                 print(f"Camera offset: {self.camera_offset}, Player pos: {self.player.rect.centerx}, {self.player.rect.centery}")
 
+                # Cập nhật hành động của nhân vật
                 if self.player.attack and self.player.in_air:
                     self.player.update_action(10)
                 elif self.player.attack:
                     if self.player.action != 3:
                         self.player.update_action(3)
-                    for slime in self.slime_list:
-                        if slime.alive and self.player.rect.colliderect(slime.rect):
-                            slime.health -= 10
-                            slime.update_action(2)
-                            slime.check_alive()
                 elif self.player.block:
                     self.player.update_action(4)
                 elif self.player.cast:
@@ -194,18 +203,43 @@ class BattleLevel1(BattleBase):
 
                 self.player.update_animation()
 
-            for slime in self.slime_list:
-                if slime.alive:
-                    slime.move()
-                    if slime.in_air:
-                        slime.update_action(1)
+                # Tạo lưới grid từ tile layer ground (layer thứ 2 = index 1)
+                grid = []
+                for row in range(self.map_height):
+                    line = []
+                    for col in range(self.map_width):
+                        tile = self.tile_layers[1][row * self.map_width + col]
+                        line.append(1 if tile != 0 else 0)  # 1: vật cản, 0: đường đi
+                    grid.append(line)
+
+                # Xử lý slime
+                for slime in self.slime_list:
+                    if slime.alive:
+                        if slime.name == "slime_bfs":
+                            slime.update_bfs(self.player, grid)
+                        elif slime.name == "slime_greedy":
+                            slime.update_greedy(self.player, grid)
+                        elif slime.name == "slime_hill":
+                            slime.update_hill_climb(self.player, grid)
+                        elif slime.name == "slime_back":
+                            slime.update_backtracking(self.player, grid)
+                        elif slime.name == "slime_q":
+                            slime.update_q_learning(self.player, grid)
+                        elif slime.name == "slime_andor":
+                            slime.update_andor(self.player, grid)
+                        else:
+                            slime.move()
+
+                        if slime.in_air:
+                            slime.update_action(1)
+                        else:
+                            slime.update_action(0)
                     else:
-                        slime.update_action(0)
-                else:
-                    if slime.action != 3:
-                        slime.update_action(3)
-                slime.update_animation()
-                slime.check_alive()
+                        if slime.action != 3:
+                            slime.update_action(3)
+                    slime.update_animation()
+                    slime.check_alive()
+
 
             # Kiểm tra trạng thái sống của Knight và gọi GameOverScreen nếu chết
             if not self.player.alive:
