@@ -4,7 +4,7 @@ import math
 from src.components.settings_button import SettingsButton
 
 class Menu:
-    def __init__(self, screen):
+    def __init__(self, screen, unlocked_levels=None):
         self.screen = screen
         self.running = True
         self.settings_button = SettingsButton(self.screen)
@@ -22,6 +22,10 @@ class Menu:
             {"id": 3, "unlocked": False},
             {"id": 4, "unlocked": False},
         ]
+        if unlocked_levels:
+            for level in self.levels:
+                if level["id"] in unlocked_levels:
+                    level["unlocked"] = True
 
         self.buttons = []
         self.update_layout()
