@@ -45,8 +45,13 @@ class BattleLevel1(BattleBase):
                 self.player = Knight(x, y, scale=0.35, speed=3, battle_base=self)
                 self.player_group = pygame.sprite.Group(self.player)
             elif props.get("enemy") == "yes":
-                move_area = pygame.Rect(x - 100, y - 50, 200, 100)
-                slime = Slime(x, y, 1.0, 2, self, move_area=move_area)
+                if len(self.slime_list) == 3:  # chỉ con slime thứ 4
+                    move_area = pygame.Rect(x - 50, y - 50, 100, 100)  # giới hạn phạm vi nhỏ hơn
+                    slime = Slime(x, y, 1.0, 2, self, move_area=move_area)
+                    slime.name = "slime_back"
+                else:
+                    move_area = pygame.Rect(x - 100, y - 50, 200, 100)
+                    slime = Slime(x, y, 1.0, 2, self, move_area=move_area)
                 if len(self.slime_list) == 0:
                     slime.name = "slime_bfs"
                 elif len(self.slime_list) == 1:
