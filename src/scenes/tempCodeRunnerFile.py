@@ -98,8 +98,6 @@ class BattleLevel1(BattleBase):
 
     def run(self):
         clock = pygame.time.Clock()
-        self.prev_health = self.player.health  # Khởi tạo máu ban đầu
-
         while self.running:
             self.logic_manager.update()
 
@@ -108,7 +106,7 @@ class BattleLevel1(BattleBase):
                 player_rect = self.player.rect.move(-self.camera_offset[0], -self.camera_offset[1])
                 if self.logic_manager.check_victory(player_rect, door_rect):
                     return "win"
-
+                
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     self.running = False
@@ -176,50 +174,51 @@ class BattleLevel1(BattleBase):
                 self.camera_offset[0] = max(0, min(target_x, map_width_px - self.screen_width))
                 self.camera_offset[1] = max(0, min(target_y, map_height_px - self.screen_height))
 
-                # Nếu máu giảm và chưa trong trạng thái hurt thì kích hoạt
-                if self.player.health < self.prev_health and not self.player.is_hurt:
-                    self.player.is_hurt = True
-                    self.player.update_action(8)
-                    self.player.frame_index = 0
-                    print("[Knight] Bị thương!")
-
-                self.prev_health = self.player.health
-
-                # Nếu đang hurt thì không làm gì thêm
-                if self.player.is_hurt:
-                    pass
-                else:
-                    # Các hành động khác
-                    if self.player.attack and self.player.in_air:
-                        self.player.update_action(10)
-                    elif self.player.attack:
-                        if self.player.action != 3:
-                            self.player.update_action(3)
-                        for slime in self.slime_list:
-                            if slime.alive and self.player.rect.colliderect(slime.rect):
-                                slime.health -= 10
-                                if slime.health > 0:
-                                    slime.update_action(2)
-                                else:
-                                    slime.check_alive()
-                    elif self.player.block:
-                        self.player.update_action(4)
-                    elif self.player.cast:
-                        self.player.update_action(5)
-                    elif self.player.crouch:
-                        self.player.update_action(6)
-                    elif self.player.dash:
-                        self.player.update_action(7)
-                    elif self.player.in_air and self.player.vel_y > 1:
-                        self.player.update_action(2)
-                    elif self.moving_left or self.moving_right:
-                        self.player.update_action(1)
+                # Kiểm tra trạng thái hurt của Knight
+                if hasattr(self.player, 'is_hurt') and self.player.is_hurt:
+                    current_time = pygame.time.get_ticks()
+                    if current_time - self.player.hurt_start_time >= 1000:  # 1 giây miễn nhiễm
+                        self.player.is_hurt = False
+                        delattr(self.player, 'is_hurt')
+                        delattr(self.player, 'hurt_start_time')
                     else:
-                        self.player.update_action(0)
+                        self.player.update_action(8)  # Giả sử 8 là hành động "hurt"
+
+                # Cập nhật hành động của Knight
+                if self.player.attack and self.player.in_air:
+                    self.player.update_action(10)
+                elif self.player.attack:
+                    if self.player.action != 3:
+                        self.player.update_action(3)
+                    for slime in self.slime_list:
+                        if slime.alive and self.player.rect.colliderect(slime.rect):
+                            slime.health -= 10
+                            if slime.health > 0:
+                                slime.update_action(2)
+                            else:
+                                slime.check_alive()
+                elif self.player.block:
+                    self.player.update_action(4)
+                elif self.player.cast:
+                    self.player.update_action(5)
+                elif self.player.crouch:
+                    self.player.update_action(6)
+                elif self.player.dash:
+                    self.player.update_action(7)
+                elif self.player.health <= 50 and not self.player.in_air and not hasattr(self.player, 'is_hurt'):
+                    self.player.update_action(8)
+                elif self.player.health <= 70 and not self.player.in_air and not hasattr(self.player, 'is_hurt'):
+                    self.player.update_action(9)
+                elif self.player.in_air and self.player.vel_y > 1:
+                    self.player.update_action(2)
+                elif self.moving_left or self.moving_right:
+                    self.player.update_action(1)
+                else:
+                    self.player.update_action(0)
 
                 self.player.update_animation()
 
-                # Cập nhật slime
+                # Xử lý slime
                 for slime in self.slime_list:
                     if slime.alive:
                         if slime.name == "slime_bfs":
@@ -244,7 +243,6 @@ class BattleLevel1(BattleBase):
                     else:
                         if slime.action != 3:
                             slime.update_action(3)
-
                     slime.update_animation()
                     slime.check_alive()
 
@@ -266,8 +264,7 @@ class BattleLevel1(BattleBase):
             self.draw()
             pygame.display.flip()
             clock.tick(60)
-            print(f"FPS: {clock.get_fps()}")
-
+            print(f"FPS: {clock.get_fps()}")  # Thêm để kiểm tra FPS
 
     def draw(self):
         self.screen.fill((0, 0, 0))

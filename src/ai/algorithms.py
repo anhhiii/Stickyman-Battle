@@ -1,16 +1,16 @@
 from collections import deque
 import heapq
 import random
+import math
+import numpy as np
 
-def bfs_path(start, goal, grid):
+def bfs_path(start, goal, grid, margin_data=None, map_width=None, map_height=None):
     rows, cols = len(grid), len(grid[0])
     visited = [[False for _ in range(cols)] for _ in range(rows)]
     prev = [[None for _ in range(cols)] for _ in range(rows)]
-
     queue = deque()
     queue.append(start)
     visited[start[1]][start[0]] = True
-
     directions = [(0, 1), (1, 0), (0, -1), (-1, 0)]  # xuống, phải, lên, trái
 
     while queue:
@@ -19,176 +19,232 @@ def bfs_path(start, goal, grid):
             break
         for dx, dy in directions:
             nx, ny = x + dx, y + dy
-            if 0 <= nx < cols and 0 <= ny < rows and not visited[ny][nx] and grid[ny][nx] == 0:
+            if (0 <= nx < cols and 0 <= ny < rows and not visited[ny][nx] and grid[ny][nx] == 0):
+                # Kiểm tra margin
+                if margin_data and map_width and map_height:
+                    margin_index = ny * map_width + nx
+                    if margin_index < len(margin_data) and margin_data[margin_index] != 0:
+                        continue  # Bỏ qua ô có margin
                 queue.append((nx, ny))
                 visited[ny][nx] = True
                 prev[ny][nx] = (x, y)
 
-    # Truy vết lại đường đi
     path = []
     at = goal
     while at != start:
         path.append(at)
         at = prev[at[1]][at[0]]
         if at is None:
-            return []  # không tìm thấy đường đi
+            return []
     path.reverse()
     return path
 
-def greedy_path(start, goal, grid):
+def greedy_path(start, goal, grid, margin_data=None, map_width=None, map_height=None):
+    def manhattan_distance(p1, p2):
+        return abs(p1[0] - p2[0]) + abs(p1[1] - p2[1])
+
     rows, cols = len(grid), len(grid[0])
-    visited = set()
-    parent = {}
+    visited = [[False for _ in range(cols)] for _ in range(rows)]
+    prev = [[None for _ in range(cols)] for _ in range(rows)]
+    pq = [(manhattan_distance(start, goal), start)]
+    visited[start[1]][start[0]] = True
+    directions = [(0, 1), (1, 0), (0, -1), (-1, 0)]
 
-    def heuristic(a, b):
-        return abs(a[0] - b[0]) + abs(a[1] - b[1])  # Manhattan distance
-
-    heap = [(heuristic(start, goal), start)]
-    visited.add(start)
-
-    while heap:
-        _, current = heapq.heappop(heap)
-        if current == goal:
+    while pq:
+        _, (x, y) = heapq.heappop(pq)
+        if (x, y) == goal:
             break
-        x, y = current
-        for dx, dy in [(-1,0),(1,0),(0,-1),(0,1)]:
-            nx, ny = x+dx, y+dy
-            neighbor = (nx, ny)
-            if 0 <= nx < cols and 0 <= ny < rows and grid[ny][nx] == 0 and neighbor not in visited:
-                visited.add(neighbor)
-                parent[neighbor] = current
-                heapq.heappush(heap, (heuristic(neighbor, goal), neighbor))
+        for dx, dy in directions:
+            nx, ny = x + dx, y + dy
+            if (0 <= nx < cols and 0 <= ny < rows and not visited[ny][nx] and grid[ny][nx] == 0):
+                # Kiểm tra margin
+                if margin_data and map_width and map_height:
+                    margin_index = ny * map_width + nx
+                    if margin_index < len(margin_data) and margin_data[margin_index] != 0:
+                        continue
+                heapq.heappush(pq, (manhattan_distance((nx, ny), goal), (nx, ny)))
+                visited[ny][nx] = True
+                prev[ny][nx] = (x, y)
 
     path = []
-    current = goal
-    while current != start:
-        if current in parent:
-            path.append(current)
-            current = parent[current]
-        else:
-            return []  # không tìm được đường
+    at = goal
+    while at != start:
+        path.append(at)
+        at = prev[at[1]][at[0]]
+        if at is None:
+            return []
     path.reverse()
     return path
 
-def hill_climb_step(current, goal, grid):
+def backtracking_path(start, goal, grid, margin_data=None, map_width=None, map_height=None):
     rows, cols = len(grid), len(grid[0])
-    cx, cy = current
-    gx, gy = goal
-
-    best = current
-    best_h = abs(cx - gx) + abs(cy - gy)
-
-    for dx, dy in [(-1, 0), (1, 0), (0, -1), (0, 1)]:
-        nx, ny = cx + dx, cy + dy
-        if 0 <= nx < cols and 0 <= ny < rows and grid[ny][nx] == 0:
-            h = abs(nx - gx) + abs(ny - gy)
-            if h < best_h:
-                best = (nx, ny)
-                best_h = h
-
-    return best
-
-def backtracking_path(start, goal, grid):
+    visited = [[False for _ in range(cols)] for _ in range(rows)]
     path = []
-    visited = set()
 
-    def backtrack(pos):
-        if pos == goal:
-            path.append(pos)
+    def dfs(x, y):
+        if (x, y) == goal:
+            path.append((x, y))
             return True
-        visited.add(pos)
-        x, y = pos
-        for dx, dy in [(-1, 0), (1, 0), (0, -1), (0, 1)]:
+        visited[y][x] = True
+        directions = [(0, 1), (1, 0), (0, -1), (-1, 0)]
+        random.shuffle(directions)
+        for dx, dy in directions:
             nx, ny = x + dx, y + dy
-            next_pos = (nx, ny)
-            if (0 <= nx < len(grid[0]) and 0 <= ny < len(grid) and
-                grid[ny][nx] == 0 and next_pos not in visited):
-                if backtrack(next_pos):
-                    path.append(pos)
+            if (0 <= nx < cols and 0 <= ny < rows and not visited[ny][nx] and grid[ny][nx] == 0):
+                # Kiểm tra margin
+                if margin_data and map_width and map_height:
+                    margin_index = ny * map_width + nx
+                    if margin_index < len(margin_data) and margin_data[margin_index] != 0:
+                        continue
+                if dfs(nx, ny):
+                    path.append((x, y))
                     return True
         return False
 
-    if backtrack(start):
-        path.reverse()
+    dfs(start[0], start[1])
+    path.reverse()
     return path
 
-def q_learning_train(grid, start, goal, episodes=100, alpha=0.1, gamma=0.9, epsilon=0.1):
+def and_or_search(start, goal, grid, margin_data=None, map_width=None, map_height=None):
     rows, cols = len(grid), len(grid[0])
+    visited = [[False for _ in range(cols)] for _ in range(rows)]
+    path = []
+
+    def dfs(x, y, depth=0, max_depth=100):
+        if depth > max_depth:
+            return False
+        if (x, y) == goal:
+            path.append((x, y))
+            return True
+        visited[y][x] = True
+        directions = [(0, 1), (1, 0), (0, -1), (-1, 0)]
+        random.shuffle(directions)
+        for dx, dy in directions:
+            nx, ny = x + dx, y + dy
+            if (0 <= nx < cols and 0 <= ny < rows and not visited[ny][nx] and grid[ny][nx] == 0):
+                # Kiểm tra margin
+                if margin_data and map_width and map_height:
+                    margin_index = ny * map_width + nx
+                    if margin_index < len(margin_data) and margin_data[margin_index] != 0:
+                        continue
+                if dfs(nx, ny, depth + 1, max_depth):
+                    path.append((x, y))
+                    return True
+        visited[y][x] = False
+        return False
+
+    dfs(start[0], start[1])
+    path.reverse()
+    return path
+
+def hill_climb_step(current, goal, grid, margin_data=None, map_width=None, map_height=None):
+    def manhattan_distance(p1, p2):
+        return abs(p1[0] - p2[0]) + abs(p1[1] - p2[1])
+
+    rows, cols = len(grid), len(grid[0])
+    directions = [(0, 1), (1, 0), (0, -1), (-1, 0)]
+    best_score = manhattan_distance(current, goal)
+    best_pos = current
+
+    for dx, dy in directions:
+        nx, ny = current[0] + dx, current[1] + dy
+        if (0 <= nx < cols and 0 <= ny < rows and grid[ny][nx] == 0):
+            # Kiểm tra margin
+            if margin_data and map_width and map_height:
+                margin_index = ny * map_width + nx
+                if margin_index < len(margin_data) and margin_data[margin_index] != 0:
+                    continue
+            score = manhattan_distance((nx, ny), goal)
+            if score < best_score:
+                best_score = score
+                best_pos = (nx, ny)
+    return best_pos
+
+def q_learning_train(grid, start, goal, episodes=100, margin_data=None, map_width=None, map_height=None):
+    rows, cols = len(grid), len(grid[0])
+    actions = [(0, 1), (1, 0), (0, -1), (-1, 0)]  # xuống, phải, lên, trái
     q_table = {}
-    actions = [(-1, 0), (1, 0), (0, -1), (0, 1)]
+    alpha, gamma, epsilon = 0.1, 0.9, 0.1
 
-    def get_max_q(state):
-        return max(q_table.get(state, {}).values(), default=0)
+    def get_state(pos):
+        return pos
 
-    for ep in range(episodes):
+    def get_valid_actions(state):
+        x, y = state
+        valid = []
+        for dx, dy in actions:
+            nx, ny = x + dx, y + dy
+            if (0 <= nx < cols and 0 <= ny < rows and grid[ny][nx] == 0):
+                # Kiểm tra margin
+                if margin_data and map_width and map_height:
+                    margin_index = ny * map_width + nx
+                    if margin_index < len(margin_data) and margin_data[margin_index] != 0:
+                        continue
+                valid.append((dx, dy))
+        return valid
+
+    for _ in range(episodes):
         state = start
         while state != goal:
-            if state not in q_table:
-                q_table[state] = {a: 0 for a in actions}
-
+            state_key = get_state(state)
+            if state_key not in q_table:
+                q_table[state_key] = {action: 0 for action in actions}
+            valid_actions = get_valid_actions(state)
+            if not valid_actions:
+                break
             if random.random() < epsilon:
-                action = random.choice(actions)
+                action = random.choice(valid_actions)
             else:
-                action = max(q_table[state], key=q_table[state].get)
-
-            nx, ny = state[0] + action[0], state[1] + action[1]
-            next_state = (nx, ny)
-
-            if 0 <= nx < cols and 0 <= ny < rows and grid[ny][nx] == 0:
-                reward = 100 if next_state == goal else -1
-                if next_state not in q_table:
-                    q_table[next_state] = {a: 0 for a in actions}
-                q_table[state][action] += alpha * (reward + gamma * get_max_q(next_state) - q_table[state][action])
-                state = next_state
+                action = max(valid_actions, key=lambda a: q_table[state_key].get(a, 0))
+            dx, dy = action
+            next_state = (state[0] + dx, state[1] + dy)
+            reward = -1
+            if next_state == goal:
+                reward = 100
+            next_state_key = get_state(next_state)
+            if next_state_key not in q_table:
+                q_table[next_state_key] = {action: 0 for action in actions}
+            next_valid_actions = get_valid_actions(next_state)
+            if next_valid_actions:
+                next_max = max(q_table[next_state_key][a] for a in next_valid_actions)
             else:
-                q_table[state][action] += alpha * (-5 - q_table[state][action])  # Phạt nếu đi vào tường
-
+                next_max = 0
+            q_table[state_key][action] += alpha * (reward + gamma * next_max - q_table[state_key][action])
+            state = next_state
     return q_table
 
-def q_learning_step(q_table, current):
-    if current not in q_table:
-        return current
-    best_action = max(q_table[current], key=q_table[current].get)
-    return (current[0] + best_action[0], current[1] + best_action[1])
-
-def and_or_search(start, goal, grid):
+def q_learning_step(current, q_table, grid, margin_data=None, map_width=None, map_height=None):
     rows, cols = len(grid), len(grid[0])
-    explored = set()  # Tập hợp các trạng thái đã thăm
-    path = []
+    actions = [(0, 1), (1, 0), (0, -1), (-1, 0)]  # xuống, phải, lên, trái
 
-    def search(state, current_path):
-        # Điều kiện dừng: nếu đã đến mục tiêu
-        if state == goal:
-            path.append(state)
-            return True
-        
-        # Nếu trạng thái đã được thăm, bỏ qua để tránh vòng lặp
-        if state in explored:
-            return False
-        
-        # Thêm trạng thái vào tập đã thăm
-        explored.add(state)
-        
-        # Thêm trạng thái vào đường đi hiện tại
-        current_path.append(state)
-        
-        # Thử tất cả các hành động có thể
-        for action in [(-1, 0), (1, 0), (0, -1), (0, 1)]:
-            next_state = (state[0] + action[0], state[1] + action[1])
-            # Kiểm tra tính hợp lệ của trạng thái tiếp theo
-            if (0 <= next_state[0] < cols and 0 <= next_state[1] < rows and 
-                grid[next_state[1]][next_state[0]] == 0 and 
-                next_state not in current_path):  # Tránh chu trình
-                if search(next_state, current_path):
-                    path.append(next_state)
-                    return True
-        
-        # Loại bỏ trạng thái khỏi đường đi hiện tại nếu không tìm thấy đường
-        current_path.pop()
-        return False
+    def get_state(pos):
+        return pos
 
-    # Gọi hàm tìm kiếm từ trạng thái bắt đầu
-    if search(start, []):
-        path.reverse()
-        return path
-    return []  # Trả về danh sách rỗng nếu không tìm thấy đường đi
+    def get_valid_actions(state):
+        x, y = state
+        valid = []
+        for dx, dy in actions:
+            nx, ny = x + dx, y + dy
+            if (0 <= nx < cols and 0 <= ny < rows and grid[ny][nx] == 0):
+                # Kiểm tra margin
+                if margin_data and map_width and map_height:
+                    margin_index = ny * map_width + nx
+                    if margin_index < len(margin_data) and margin_data[margin_index] != 0:
+                        continue
+                valid.append((dx, dy))
+        return valid
+
+    state = get_state(current)
+    if state not in q_table:
+        q_table[state] = {action: 0 for action in actions}
+    
+    valid_actions = get_valid_actions(state)
+    if not valid_actions:
+        return current  # Trả về vị trí hiện tại nếu không có hành động hợp lệ
+
+    # Chọn hành động tốt nhất từ Q-table
+    best_action = max(valid_actions, key=lambda a: q_table[state].get(a, 0))
+    dx, dy = best_action
+    next_pos = (current[0] + dx, current[1] + dy)
+    
+    return next_pos

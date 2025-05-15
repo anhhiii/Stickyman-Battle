@@ -16,6 +16,7 @@ def main():
     pygame.mixer.init()
     screen = pygame.display.set_mode((800, 608))
     pygame.display.set_caption("STICKY MAN")
+    clock = pygame.time.Clock()
 
     # Khởi tạo thanh máu (góc trên bên trái)
     player_health = 100  # Giá trị máu ban đầu
@@ -23,6 +24,7 @@ def main():
 
     current_scene = "background"
     while True:
+        clock.tick(60)
         if current_scene == "background":
             background = Background(screen)
             current_scene = background.run()

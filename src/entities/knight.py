@@ -20,6 +20,7 @@ class Knight(pygame.sprite.Sprite):
         self.dash = False
         self.alive = True
         self.health = 100
+        self.is_hurt = False
         self.action = 0
         self.frame_index = 0
         self.animation_types = ['Idle', 'Walk', 'Jump', 'Attack', 'Block', 'Cast', 'Crouch', 'Dash', 'Dizzy', 'Hurt', 'JumpAttack']
@@ -210,17 +211,22 @@ class Knight(pygame.sprite.Sprite):
             self.action = 0
 
         if self.frame_index >= len(self.animation_list[self.action]):
-            self.frame_index = 0
-            print(f"Resetting frame index to 0 for action {self.action}")
-            if self.action == 3:  # Nếu là Attack
+            if self.action == 3:  # Attack
                 self.attack = False
                 self.attack_frame = 0
+            elif self.action == 8:  # Hurt
+                self.is_hurt = False
+                self.update_action(0)  # Về Idle
+            self.frame_index = 0
+            print(f"Resetting frame index to 0 for action {self.action}")
 
         self.image = self.animation_list[self.action][self.frame_index]
         print(f"Animation: action={self.action}, frame={self.frame_index}")
+
         if pygame.time.get_ticks() - self.update_time > cooldown:
             self.update_time = pygame.time.get_ticks()
             self.frame_index += 1
+
             if self.action == 3:
                 self.attack_frame += 1
                 print(f"Attack frame: {self.attack_frame}")
