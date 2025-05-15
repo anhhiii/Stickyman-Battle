@@ -52,11 +52,11 @@ Trong game Stickman Battle, các thuật toán trí tuệ nhân tạo được s
  
 ---
 ## Cấu trúc thư mục
-assets        # Tài nguyên hình ảnh, âm thanh
-maps          # File bản đồ .tmx
-src           # Mã nguồn game và AI
-main.py       # File chạy chính
-README.md     # Tệp hướng dẫn này
+- assets        # Tài nguyên hình ảnh, âm thanh
+- maps          # File bản đồ .tmx
+- src           # Mã nguồn game và AI
+- main.py       # File chạy chính
+- README.md     # Tệp hướng dẫn này
 
 ---
 
