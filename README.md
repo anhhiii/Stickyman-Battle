@@ -94,6 +94,7 @@ Trong game Stickman Battle, các thuật toán trí tuệ nhân tạo được s
  - [StickMan_Game GitHub](https://github.com/nguyenhuytlu/StickMan_Game)
  - [StickMan Game Development Series YouTube Playlist](https://www.youtube.com/playlist?list=PLjcN1EyupaQm20hlUE11y9y8EY2aXLpnv)
 
+---
 ## NHÓM SINH VIÊN THỰC HIỆN: NHÓM 06
  - Nguyễn Thanh Khang	- 23110237
  - Đoàn Thị Thu Trang	- 23110347
