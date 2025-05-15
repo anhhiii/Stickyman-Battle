@@ -291,6 +291,7 @@ class Slime(pygame.sprite.Sprite):
     def update_andor(self, player, grid, margin_data):
         if not self.alive:
             return
+
         if abs(self.rect.centerx - player.rect.centerx) < 150:
             self.follow_player = True
 
@@ -326,6 +327,9 @@ class Slime(pygame.sprite.Sprite):
                             self.andor_index += 1
 
     def move(self):
+        if not self.alive:
+            return  # Không di chuyển nếu slime đã chết
+
         dx = self.speed * self.direction
         dy = 0
 
@@ -356,9 +360,6 @@ class Slime(pygame.sprite.Sprite):
             self.rect.bottom = 600
             self.vel_y = 0
             self.in_air = False
-
-        if not self.alive:
-            return
 
     def check_collision(self, direction, move_value):
         tile_width = self.battle_base.tile_width
@@ -399,7 +400,10 @@ class Slime(pygame.sprite.Sprite):
             self.update_time = pygame.time.get_ticks()
             self.frame_index += 1
         if self.frame_index >= len(self.animation_list[self.action]):
-            self.frame_index = 0
+            if self.action == 3:  # Nếu là Death thì giữ frame cuối
+                self.frame_index = len(self.animation_list[self.action]) - 1
+            else:
+                self.frame_index = 0
 
     def update_action(self, new_action):
         if new_action != self.action:

@@ -57,9 +57,9 @@ class BattleLevel1(BattleBase):
                     slime.name = "slime_hill"
                 elif len(self.slime_list) == 3:
                     slime.name = "slime_back"
-                if len(self.slime_list) == 4:
+                elif len(self.slime_list) == 4:
                     slime.name = "slime_q"
-                if len(self.slime_list) == 5:
+                elif len(self.slime_list) == 5:
                     slime.name = "slime_andor"
                 self.slime_list.append(slime)
                 print(f"[Slime] Spawned at {x}, {y}")
@@ -76,20 +76,16 @@ class BattleLevel1(BattleBase):
         self.screen_width = screen.get_width()
         self.screen_height = screen.get_height()
 
-        # Khởi tạo các icon (giữ nguyên đường dẫn tương đối như yêu cầu)
+        # Khởi tạo các icon
         icon_dir = os.path.join(project_root, 'assets', 'icons')
-
-        # Tải icon cài đặt
         self.settings_icon = pygame.image.load(os.path.join(icon_dir, "settings_icon.png"))
         self.settings_icon = pygame.transform.scale(self.settings_icon, (30, 30))
         self.settings_button = pygame.Rect(750, 10, 30, 30)
 
-        # Tải icon Pause
         self.pause_icon = pygame.image.load(os.path.join(icon_dir, "pause_icon.png"))
         self.pause_icon = pygame.transform.scale(self.pause_icon, (30, 30))
         self.pause_button = pygame.Rect(700, 10, 30, 30)
 
-        # Tải icon Continue
         self.continue_icon = pygame.image.load(os.path.join(icon_dir, "continue_icon.png"))
         self.continue_icon = pygame.transform.scale(self.continue_icon, (30, 30))
         self.continue_button = pygame.Rect(650, 10, 30, 30)
@@ -122,7 +118,8 @@ class BattleLevel1(BattleBase):
                         if event.key == pygame.K_w and self.player.alive:
                             self.player.jump = True
                         if event.key == pygame.K_SPACE and self.player.alive:
-                            self.player.update_action(3)
+                            self.player.update_action(3)  # Attack animation
+                            self.player.attack = True  # Kích hoạt trạng thái tấn công
                         if event.key == pygame.K_b:
                             self.player.block = True
                         if event.key == pygame.K_c:
@@ -137,6 +134,8 @@ class BattleLevel1(BattleBase):
                             self.moving_left = False
                         if event.key == pygame.K_d:
                             self.moving_right = False
+                        if event.key == pygame.K_SPACE:
+                            self.player.attack = False  # Tắt trạng thái tấn công
                         if event.key == pygame.K_b:
                             self.player.block = False
                         if event.key == pygame.K_c:
@@ -177,6 +176,16 @@ class BattleLevel1(BattleBase):
                 elif self.player.attack:
                     if self.player.action != 3:
                         self.player.update_action(3)
+                    # Kiểm tra va chạm với slime khi tấn công
+                    for slime in self.slime_list:
+                        if slime.alive and self.player.rect.colliderect(slime.rect):
+                            slime.health -= 10  # Gây sát thương cho slime
+                            if slime.health > 0:
+                                slime.update_action(2)  # Hurt animation
+                                print(f"[Knight Attack] Slime health reduced to {slime.health}")
+                            else:
+                                slime.check_alive()  # Kích hoạt Death animation
+                                print(f"[Knight Attack] Slime '{slime.name}' killed!")
                 elif self.player.block:
                     self.player.update_action(4)
                 elif self.player.cast:
@@ -338,8 +347,8 @@ class BattleLevel1(BattleBase):
             self.screen.blit(pause_text, text_rect)
 
         pygame.draw.rect(self.screen, (0, 255, 255), (
-        self.player.rect.x - self.camera_offset[0],
-        self.player.rect.y - self.camera_offset[1],
-        self.player.rect.width,
-        self.player.rect.height
-), 2)
+            self.player.rect.x - self.camera_offset[0],
+            self.player.rect.y - self.camera_offset[1],
+            self.player.rect.width,
+            self.player.rect.height
+        ), 2)
