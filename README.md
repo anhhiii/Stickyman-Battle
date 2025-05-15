@@ -39,7 +39,7 @@ Trong game Stickman Battle, các thuật toán trí tuệ nhân tạo được s
    Thuật toán học củng cố giúp nhân vật học dần cách chọn hành động tối ưu qua các lần chơi, tăng khả năng tự thích nghi.
 6. **And-Or Search**  
    Tìm kiếm dạng cây quyết định, dùng trong môi trường phức tạp, đảm bảo không bỏ sót lựa chọn.
-
+  ** 
 - BFS là lựa chọn ưu việt khi cần đảm bảo tính chính xác và toàn diện trong việc tìm đường, nhưng kém hiệu quả khi không gian trạng thái lớn hoặc có trọng số đa dạng.
 - Q-Learning mang lại khả năng học hỏi và thích nghi, phù hợp với môi trường chiến đấu biến đổi và tăng tính đa dạng hành vi.
 - Greedy Search cung cấp phản ứng nhanh, phù hợp các tình huống yêu cầu tốc độ hơn độ chính xác.
@@ -66,15 +66,17 @@ Trong game Stickman Battle, các thuật toán trí tuệ nhân tạo được s
 
 ---
 ## DEMO
+- Màn hình Start game
 ![Màn hình Start game](https://drive.google.com/uc?export=view&id=1tmrfYMf8bXFAwjqoaOx9CSzzTHhWYamr)
 
-![Màn hình Level 1]
+- Màn hình Level 1
+![Màn hình Level 1](https://drive.google.com/uc?export=view&id=1N6b_rr1CJldaqouGwajteCOM0-r5JoFb)
 
-![Màn hình Start game]
+- Màn hình Game over
+![Màn hình Game over](https://drive.google.com/uc?export=view&id=1eY63pPhHLE09zdcsVAv_lI3yYsekZYe5)
 
-![Màn hình Game over]
-
-![Màn hình Win game]
+- Màn hình Win game
+![Màn hình Win game](https://drive.google.com/uc?export=view&id=1L7dykpLmH6X-8GgWjtG8ZcDB4yU_7OQF)
 
 ---
 ## Kết quả và đánh giá
