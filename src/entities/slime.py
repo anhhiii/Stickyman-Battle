@@ -1,7 +1,12 @@
 import pygame
 import os
+<<<<<<< Updated upstream
 from src.ai.algorithms import bfs_path
 from math import floor
+=======
+import time  # Thêm thư viện time để xử lý thời gian
+from src.ai.algorithms import bfs_path, greedy_path, hill_climb_step, backtracking_path, q_learning_train, q_learning_step, and_or_search
+>>>>>>> Stashed changes
 
 class Slime(pygame.sprite.Sprite):
     def __init__(self, x, y, scale, speed, battle_base, name="slime"):
@@ -36,6 +41,7 @@ class Slime(pygame.sprite.Sprite):
             'Hurt': 11,
             'Death': 14
         }
+        self.last_hit_time = 0  # Thời gian lần cuối va chạm
 
         # Định nghĩa các trạng thái hoạt hình
         self.animation_types = ['Idle', 'Jump', 'Hurt', 'Death']
@@ -187,6 +193,21 @@ class Slime(pygame.sprite.Sprite):
                                 self.rect.top = tile_rect.bottom
                                 self.vel_y = 0
                                 # print(f"Slime collision (top) with tile at ({col * tile_width}, {row * tile_height})")
+
+    def check_collision_with_player(self, player, game_over_callback):
+        """
+        Kiểm tra va chạm với nhân vật. Nếu va chạm, giảm máu của nhân vật.
+        Nếu máu về 0, gọi hàm game_over_callback.
+        """
+        current_time = time.time()  # Lấy thời gian hiện tại
+        if self.rect.colliderect(player.rect) and self.alive:
+            if current_time - self.last_hit_time > 1:  # Chỉ trừ máu sau mỗi 1 giây
+                if player.health > 0:
+                    player.health -= 0.2  # Giảm máu ít hơn (0.2)
+                if player.health <= 0:
+                    player.health = 0
+                    game_over_callback()  # Hiển thị màn hình "Game Over"
+                self.last_hit_time = current_time  # Cập nhật thời gian va chạm cuối
 
     def update_animation(self):
         ANIMATION_COOLDOWN = 100
