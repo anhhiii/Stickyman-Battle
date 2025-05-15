@@ -1,6 +1,7 @@
 from collections import deque
 import heapq
 import random
+
 def bfs_path(start, goal, grid):
     rows, cols = len(grid), len(grid[0])
     visited = [[False for _ in range(cols)] for _ in range(rows)]
@@ -33,7 +34,6 @@ def bfs_path(start, goal, grid):
             return []  # không tìm thấy đường đi
     path.reverse()
     return path
-
 
 def greedy_path(start, goal, grid):
     rows, cols = len(grid), len(grid[0])
@@ -69,7 +69,6 @@ def greedy_path(start, goal, grid):
             return []  # không tìm được đường
     path.reverse()
     return path
-
 
 def hill_climb_step(current, goal, grid):
     rows, cols = len(grid), len(grid[0])
@@ -152,28 +151,44 @@ def q_learning_step(q_table, current):
     best_action = max(q_table[current], key=q_table[current].get)
     return (current[0] + best_action[0], current[1] + best_action[1])
 
-
 def and_or_search(start, goal, grid):
     rows, cols = len(grid), len(grid[0])
-    explored = set()
-    plan = []
+    explored = set()  # Tập hợp các trạng thái đã thăm
+    path = []
 
-    def or_search(state, path):
+    def search(state, current_path):
+        # Điều kiện dừng: nếu đã đến mục tiêu
         if state == goal:
-            return []
-        if state in path:
-            return None
+            path.append(state)
+            return True
+        
+        # Nếu trạng thái đã được thăm, bỏ qua để tránh vòng lặp
+        if state in explored:
+            return False
+        
+        # Thêm trạng thái vào tập đã thăm
+        explored.add(state)
+        
+        # Thêm trạng thái vào đường đi hiện tại
+        current_path.append(state)
+        
+        # Thử tất cả các hành động có thể
+        for action in [(-1, 0), (1, 0), (0, -1), (0, 1)]:
+            next_state = (state[0] + action[0], state[1] + action[1])
+            # Kiểm tra tính hợp lệ của trạng thái tiếp theo
+            if (0 <= next_state[0] < cols and 0 <= next_state[1] < rows and 
+                grid[next_state[1]][next_state[0]] == 0 and 
+                next_state not in current_path):  # Tránh chu trình
+                if search(next_state, current_path):
+                    path.append(next_state)
+                    return True
+        
+        # Loại bỏ trạng thái khỏi đường đi hiện tại nếu không tìm thấy đường
+        current_path.pop()
+        return False
 
-        for action in [(-1,0), (1,0), (0,-1), (0,1)]:
-            next_state = (state[0]+action[0], state[1]+action[1])
-            if 0 <= next_state[0] < cols and 0 <= next_state[1] < rows and grid[next_state[1]][next_state[0]] == 0:
-                subplan = and_search(next_state, path + [state])
-                if subplan is not None:
-                    return [next_state] + subplan
-        return None
-
-    def and_search(state, path):
-        return or_search(state, path)
-
-    result = or_search(start, [])
-    return result if result else []
+    # Gọi hàm tìm kiếm từ trạng thái bắt đầu
+    if search(start, []):
+        path.reverse()
+        return path
+    return []  # Trả về danh sách rỗng nếu không tìm thấy đường đi

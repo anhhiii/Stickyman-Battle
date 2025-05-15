@@ -42,7 +42,6 @@ class BattleLevel1(BattleBase):
                 self.door_pos = (obj["x"], obj["y"])
                 print(f"[Door] Found at {self.door_pos}")
 
-
             if props.get("player") == "yes":
                 self.player = Knight(x, y, scale=0.35, speed=3, battle_base=self)
                 self.player_group = pygame.sprite.Group(self.player)
@@ -94,10 +93,6 @@ class BattleLevel1(BattleBase):
         self.continue_icon = pygame.image.load(os.path.join(icon_dir, "continue_icon.png"))
         self.continue_icon = pygame.transform.scale(self.continue_icon, (30, 30))
         self.continue_button = pygame.Rect(650, 10, 30, 30)
-
-        
-
-
 
     def run(self):
         clock = pygame.time.Clock()
@@ -209,24 +204,30 @@ class BattleLevel1(BattleBase):
                     line = []
                     for col in range(self.map_width):
                         tile = self.tile_layers[1][row * self.map_width + col]
-                        line.append(1 if tile != 0 else 0)  # 1: vật cản, 0: đường đi
+                        line.append(1 if tile > 0 else 0)  # 1: vật cản, 0: đường đi
                     grid.append(line)
 
-                # Xử lý slime
+                # Debug margin_data
+                if self.margin_data:
+                    print("[DEBUG] margin_data sample:", self.margin_data[:10])
+                else:
+                    print("[WARNING] margin_data is empty!")
+                    
+                # Xử lý slime với margin_data
                 for slime in self.slime_list:
                     if slime.alive:
                         if slime.name == "slime_bfs":
-                            slime.update_bfs(self.player, grid)
+                            slime.update_bfs(self.player, grid, self.margin_data)
                         elif slime.name == "slime_greedy":
-                            slime.update_greedy(self.player, grid)
+                            slime.update_greedy(self.player, grid, self.margin_data)
                         elif slime.name == "slime_hill":
-                            slime.update_hill_climb(self.player, grid)
+                            slime.update_hill_climb(self.player, grid, self.margin_data)
                         elif slime.name == "slime_back":
-                            slime.update_backtracking(self.player, grid)
+                            slime.update_backtracking(self.player, grid, self.margin_data)
                         elif slime.name == "slime_q":
-                            slime.update_q_learning(self.player, grid)
+                            slime.update_q_learning(self.player, grid, self.margin_data)
                         elif slime.name == "slime_andor":
-                            slime.update_andor(self.player, grid)
+                            slime.update_andor(self.player, grid, self.margin_data)
                         else:
                             slime.move()
 
@@ -239,7 +240,6 @@ class BattleLevel1(BattleBase):
                             slime.update_action(3)
                     slime.update_animation()
                     slime.check_alive()
-
 
             # Kiểm tra trạng thái sống của Knight và gọi GameOverScreen nếu chết
             if not self.player.alive:
@@ -331,7 +331,6 @@ class BattleLevel1(BattleBase):
         self.screen.blit(self.pause_icon, (self.pause_button.x, self.pause_button.y))
         self.screen.blit(self.continue_icon, (self.continue_button.x, self.continue_button.y))
 
-
         if self.paused:
             font = pygame.font.SysFont('Arial', 36, bold=True)
             pause_text = font.render("PAUSED", True, (255, 255, 255))
@@ -344,6 +343,3 @@ class BattleLevel1(BattleBase):
         self.player.rect.width,
         self.player.rect.height
 ), 2)
-
-
-        

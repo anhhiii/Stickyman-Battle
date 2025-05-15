@@ -17,7 +17,7 @@ class BattleBase:
         self.ground_objects = []
         self.wall_objects = []
         self.spawn_objects = []
-
+        self.margin_data = []  # Thêm thuộc tính để lưu dữ liệu lớp margin
 
         self.load_level(level_name)
         self.load_tiles()
@@ -44,21 +44,29 @@ class BattleBase:
 
         self.tile_layers.clear()
         self.object_layers.clear()
+        self.margin_data.clear()  # Xóa dữ liệu margin cũ
         for layer in root.findall("layer"):
             data = layer.find("data")
             encoding = data.get("encoding")
             compression = data.get("compression")
+            layer_name = layer.get("name")  # Lấy tên lớp
 
             if encoding == "base64" and compression == "zlib":
                 raw_data = base64.b64decode(data.text.strip())
                 decompressed = zlib.decompress(raw_data)
                 tile_count = self.map_width * self.map_height
                 tile_ids = [int.from_bytes(decompressed[i:i+4], byteorder='little') for i in range(0, tile_count * 4, 4)]
-                self.tile_layers.append(tile_ids)
+                if layer_name == "margin":
+                    self.margin_data = tile_ids  # Lưu dữ liệu margin
+                else:
+                    self.tile_layers.append(tile_ids)
             elif encoding == "csv":
                 raw_data = data.text.strip().replace('\n', '')
                 tile_ids = [int(val) for val in raw_data.split(',') if val.strip().isdigit()]
-                self.tile_layers.append(tile_ids)
+                if layer_name == "margin":
+                    self.margin_data = tile_ids  # Lưu dữ liệu margin
+                else:
+                    self.tile_layers.append(tile_ids)
             else:
                 print(f"[ERROR] Unsupported encoding/compression: {encoding} / {compression}")
 
