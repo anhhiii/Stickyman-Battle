@@ -65,5 +65,27 @@ Trong game Stickman Battle, các thuật toán trí tuệ nhân tạo được s
 - README.md     # Tệp hướng dẫn này
 
 ---
+## Kết quả và đánh giá
+Game chạy ổn định, không gặp lỗi.
+Nhân vật chính di chuyển, nhảy, tấn công mượt mà, va chạm hợp lý với môi trường.
+Camera theo sát nhân vật mượt mà không bị lag.
+AI Slime có hành vi linh hoạt, truy đuổi và phản ứng hợp lý với nhân vật Stickman.
+Giao diện game trực quan, thân thiện với người chơi.
 
+## Những khó khăn gặp phải
+Sai lệch trong tính toán camera_offset dẫn đến bản đồ bị lệch khi hiển thị.
+Xử lý va chạm phức tạp giữa các đối tượng, đặc biệt khi nhân vật nhảy hoặc leo bậc thang.
+Đồng bộ hoạt ảnh khi tấn công hoặc chuyển trạng thái không mượt do frame animation chưa tối ưu.
+Khó xác định mặt đất chính xác khi bản đồ có nhiều layer chồng lên nhau.
+
+## Định hướng phát triển tiếp theo
+Thêm hệ thống HUD hiển thị thanh máu, tên nhân vật, chỉ số kỹ năng theo thời gian thực.
+Phát triển thêm nhiều màn chơi, đa dạng bản đồ, hỗ trợ chuyển cảnh (portal/door).
+Nâng cao AI Slime để có thể tự động di chuyển, tấn công, phòng thủ theo phạm vi.
+Cải thiện vật lý game như nhảy, leo thang, xử lý va chạm góc cạnh thực tế hơn.
+Tối ưu hiệu suất để giảm flickering và tăng tốc độ render.
+
+## Tài liệu tham khảo
+[StickMan_Game GitHub](https://github.com/nguyenhuytlu/StickMan_Game)
+[StickMan Game Development Series YouTube Playlist](https://www.youtube.com/playlist?list=PLjcN1EyupaQm20hlUE11y9y8EY2aXLpnv)
 
