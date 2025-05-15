@@ -40,6 +40,12 @@ Trong game Stickman Battle, các thuật toán trí tuệ nhân tạo được s
 6. **And-Or Search**  
    Tìm kiếm dạng cây quyết định, dùng trong môi trường phức tạp, đảm bảo không bỏ sót lựa chọn.
 
+- BFS là lựa chọn ưu việt khi cần đảm bảo tính chính xác và toàn diện trong việc tìm đường, nhưng kém hiệu quả khi không gian trạng thái lớn hoặc có trọng số đa dạng.
+- Q-Learning mang lại khả năng học hỏi và thích nghi, phù hợp với môi trường chiến đấu biến đổi và tăng tính đa dạng hành vi.
+- Greedy Search cung cấp phản ứng nhanh, phù hợp các tình huống yêu cầu tốc độ hơn độ chính xác.
+- Backtracking và And-Or Search thích hợp cho các bài toán ra quyết định phức tạp, xử lý đa nhánh và nhiều điều kiện.
+- Hill Climbing là công cụ hiệu quả cho các quyết định tối ưu cục bộ, nhanh nhưng cần kết hợp với các thuật toán khác để tránh mắc kẹt.
+
 ---
 
 ## Hướng dẫn cài đặt và chạy game
