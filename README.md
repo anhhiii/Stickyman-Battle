@@ -67,16 +67,16 @@ Trong game Stickman Battle, các thuật toán trí tuệ nhân tạo được s
 ---
 ## DEMO
 - Màn hình Start game
-![Màn hình Start game](https://drive.google.com/uc?export=view&id=1tmrfYMf8bXFAwjqoaOx9CSzzTHhWYamr)
+- ![Màn hình Start game](https://drive.google.com/uc?export=view&id=1tmrfYMf8bXFAwjqoaOx9CSzzTHhWYamr)
 
 - Màn hình Level 1
-![Màn hình Level 1](https://drive.google.com/uc?export=view&id=1N6b_rr1CJldaqouGwajteCOM0-r5JoFb)
+- ![Màn hình Level 1](https://drive.google.com/uc?export=view&id=1N6b_rr1CJldaqouGwajteCOM0-r5JoFb)
 
 - Màn hình Game over
-![Màn hình Game over](https://drive.google.com/uc?export=view&id=1eY63pPhHLE09zdcsVAv_lI3yYsekZYe5)
+- ![Màn hình Game over](https://drive.google.com/uc?export=view&id=1eY63pPhHLE09zdcsVAv_lI3yYsekZYe5)
 
 - Màn hình Win game
-![Màn hình Win game](https://drive.google.com/uc?export=view&id=1L7dykpLmH6X-8GgWjtG8ZcDB4yU_7OQF)
+- ![Màn hình Win game](https://drive.google.com/uc?export=view&id=1L7dykpLmH6X-8GgWjtG8ZcDB4yU_7OQF)
 
 ---
 ## Kết quả và đánh giá
