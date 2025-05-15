@@ -65,7 +65,6 @@ class Knight(pygame.sprite.Sprite):
             self.in_air = True
             print("[Knight] Không có nền gnd, knight sẽ rơi")
 
-
     def load_sprite(self, action):
         action_folder = action
         sprite_list = []
@@ -203,7 +202,6 @@ class Knight(pygame.sprite.Sprite):
 
         return on_ground
 
-    
     def update_animation(self):
         cooldown = 100
         if self.action < 0 or self.action >= len(self.animation_list):
@@ -214,6 +212,7 @@ class Knight(pygame.sprite.Sprite):
             if self.action == 3:  # Attack
                 self.attack = False
                 self.attack_frame = 0
+                self.update_action(0)  # Chuyển về Idle sau khi hoàn thành Attack
             elif self.action == 8:  # Hurt
                 self.is_hurt = False
                 self.update_action(0)  # Về Idle
@@ -233,6 +232,8 @@ class Knight(pygame.sprite.Sprite):
             print(f"Updating frame to {self.frame_index}")
 
     def update_action(self, new_action):
+        if self.action == 3 and self.frame_index < len(self.animation_list[3]) - 1:
+            return  # Không cho phép đổi hành động nếu Attack chưa hoàn thành
         if new_action != self.action:
             self.action = new_action
             self.frame_index = 0

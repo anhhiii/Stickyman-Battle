@@ -6,6 +6,7 @@ from src.entities.slime import Slime
 from src.ui.settings_menu import SettingsMenu
 from src.ui.game_over import GameOverScreen
 from src.components.level_manager import LevelLogicManager
+from src.ui.game_victory import GameVictoryScreen
 import os
 
 class BattleLevel1(BattleBase):
@@ -45,8 +46,13 @@ class BattleLevel1(BattleBase):
                 self.player = Knight(x, y, scale=0.35, speed=3, battle_base=self)
                 self.player_group = pygame.sprite.Group(self.player)
             elif props.get("enemy") == "yes":
-                move_area = pygame.Rect(x - 100, y - 50, 200, 100)
-                slime = Slime(x, y, 1.0, 2, self, move_area=move_area)
+                if len(self.slime_list) == 3:  # chỉ con slime thứ 4
+                    move_area = pygame.Rect(x - 50, y - 50, 100, 100)  # giới hạn phạm vi nhỏ hơn
+                    slime = Slime(x, y, 1.0, 2, self, move_area=move_area)
+                    slime.name = "slime_back"
+                else:
+                    move_area = pygame.Rect(x - 100, y - 50, 200, 100)
+                    slime = Slime(x, y, 1.0, 2, self, move_area=move_area)
                 if len(self.slime_list) == 0:
                     slime.name = "slime_bfs"
                 elif len(self.slime_list) == 1:
@@ -104,10 +110,17 @@ class BattleLevel1(BattleBase):
             self.logic_manager.update()
 
             if self.door_pos:
-                door_rect = pygame.Rect(self.door_pos[0], self.door_pos[1], 32, 32)
+                door_rect = pygame.Rect(self.door_pos[0], self.door_pos[1] - 64, 64, 64)
                 player_rect = self.player.rect.move(-self.camera_offset[0], -self.camera_offset[1])
                 if self.logic_manager.check_victory(player_rect, door_rect):
-                    return "win"
+                    victory_screen = GameVictoryScreen(self.screen)
+                    result = victory_screen.run()
+                    if result == "menu":
+                        return "win"  # báo rõ là đã thắng, không phải chỉ về menu
+                    elif result == "quit":
+                        return "quit"
+
+                
 
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
@@ -142,8 +155,6 @@ class BattleLevel1(BattleBase):
                             self.moving_left = False
                         if event.key == pygame.K_d:
                             self.moving_right = False
-                        if event.key == pygame.K_SPACE:
-                            self.player.attack = False
                         if event.key == pygame.K_b:
                             self.player.block = False
                         if event.key == pygame.K_c:
@@ -167,6 +178,12 @@ class BattleLevel1(BattleBase):
 
             if self.player.alive and not self.paused:
                 self.player.move(self.moving_left, self.moving_right)
+                map_height_px = self.map_height * self.tile_height
+                if self.player.rect.top > map_height_px:
+                    self.player.health = 0
+                    self.player.check_alive()
+                    print("[Knight] Rơi khỏi bản đồ!")
+
 
                 # Cập nhật camera
                 map_width_px = self.map_width * self.tile_width
@@ -189,38 +206,47 @@ class BattleLevel1(BattleBase):
                 if self.player.is_hurt:
                     pass
                 else:
-                    # Các hành động khác
-                    if self.player.attack and self.player.in_air:
-                        self.player.update_action(10)
-                    elif self.player.attack:
-                        if self.player.action != 3:
-                            self.player.update_action(3)
-                        for slime in self.slime_list:
-                            if slime.alive and self.player.rect.colliderect(slime.rect):
-                                slime.health -= 10
-                                if slime.health > 0:
-                                    slime.update_action(2)
-                                else:
-                                    slime.check_alive()
-                    elif self.player.block:
-                        self.player.update_action(4)
-                    elif self.player.cast:
-                        self.player.update_action(5)
-                    elif self.player.crouch:
-                        self.player.update_action(6)
-                    elif self.player.dash:
-                        self.player.update_action(7)
-                    elif self.player.in_air and self.player.vel_y > 1:
-                        self.player.update_action(2)
-                    elif self.moving_left or self.moving_right:
-                        self.player.update_action(1)
+                    # Kiểm tra nếu đang trong animation Attack
+                    if self.player.action == 3 and self.player.frame_index < len(self.player.animation_list[3]) - 1:
+                        # Gây sát thương ở frame thứ 2 của Attack
+                        if self.player.attack_frame == 2:
+                            attack_range = pygame.Rect(
+                                self.player.rect.left - 50 if self.player.flip else self.player.rect.right,
+                                self.player.rect.top - 20,
+                                50,
+                                self.player.rect.height + 20
+                            )
+                            for slime in self.slime_list:
+                                if slime.alive and attack_range.colliderect(slime.rect):
+                                    print(f"Attack range: {attack_range}, Slime rect: {slime.rect}")
+                                    slime.check_alive()  # Chết ngay sau một lần đánh
+                                    print(f"[Slime] {slime.name} đã chết!")
                     else:
-                        self.player.update_action(0)
+                        # Các hành động khác
+                        if self.player.attack and self.player.in_air:
+                            self.player.update_action(10)
+                        elif self.player.attack:
+                            if self.player.action != 3:
+                                self.player.update_action(3)
+                        elif self.player.block:
+                            self.player.update_action(4)
+                        elif self.player.cast:
+                            self.player.update_action(5)
+                        elif self.player.crouch:
+                            self.player.update_action(6)
+                        elif self.player.dash:
+                            self.player.update_action(7)
+                        elif self.player.in_air and self.player.vel_y > 1:
+                            self.player.update_action(2)
+                        elif self.moving_left or self.moving_right:
+                            self.player.update_action(1)
+                        else:
+                            self.player.update_action(0)
 
                 self.player.update_animation()
 
                 # Cập nhật slime
-                for slime in self.slime_list:
+                for slime in self.slime_list[:]:  # Sao chép danh sách để tránh lỗi khi xóa
                     if slime.alive:
                         if slime.name == "slime_bfs":
                             slime.update_bfs(self.player, self.grid, self.margin_data)
@@ -236,6 +262,7 @@ class BattleLevel1(BattleBase):
                             slime.update_andor(self.player, self.grid, self.margin_data)
                         else:
                             slime.move()
+                        slime.try_attack_player(self.player)
 
                         if slime.in_air:
                             slime.update_action(1)
@@ -243,10 +270,14 @@ class BattleLevel1(BattleBase):
                             slime.update_action(0)
                     else:
                         if slime.action != 3:
-                            slime.update_action(3)
+                            slime.update_action(3)  # Đảm bảo chuyển sang Death
+                        slime.update_animation()
+                        if slime.frame_index >= len(slime.animation_list[3]) - 1:  # Đã hoàn thành animation Death
+                            self.slime_list.remove(slime)
+                            self.enemy_group.remove(slime)
+                            print(f"[Slime] {slime.name} đã được xóa!")
 
                     slime.update_animation()
-                    slime.check_alive()
 
             if not self.player.alive:
                 self.player_health = 0
@@ -268,7 +299,6 @@ class BattleLevel1(BattleBase):
             clock.tick(60)
             print(f"FPS: {clock.get_fps()}")
 
-
     def draw(self):
         self.screen.fill((0, 0, 0))
         super().draw(self.camera_offset)
@@ -276,7 +306,7 @@ class BattleLevel1(BattleBase):
         if self.door_pos:
             door_x = self.door_pos[0] - self.camera_offset[0]
             door_y = self.door_pos[1] - self.BGDoor.get_height() - self.camera_offset[1]
-            pygame.draw.rect(self.screen, (255, 0, 0), pygame.Rect(door_x, door_y, 64, 64), 2)
+            # pygame.draw.rect(self.screen, (255, 0, 0), pygame.Rect(door_x, door_y, 64, 64), 2)
             self.screen.blit(self.BGDoor, (door_x, door_y))
 
         for sprite in self.player_group:
@@ -284,7 +314,8 @@ class BattleLevel1(BattleBase):
             self.screen.blit(flipped_image, (sprite.rect.x - self.camera_offset[0], sprite.rect.y - self.camera_offset[1]))
 
         for sprite in self.enemy_group:
-            self.screen.blit(sprite.image, (sprite.rect.x - self.camera_offset[0], sprite.rect.y - self.camera_offset[1]))
+            if sprite.alive or sprite.action == 3:  # Vẽ Slime sống hoặc đang trong trạng thái Death
+                self.screen.blit(sprite.image, (sprite.rect.x - self.camera_offset[0], sprite.rect.y - self.camera_offset[1]))
 
         self.health_bar.draw(self.screen)
 
@@ -298,9 +329,9 @@ class BattleLevel1(BattleBase):
             text_rect = pause_text.get_rect(center=(self.screen_width // 2, self.screen_height // 2))
             self.screen.blit(pause_text, text_rect)
 
-        pygame.draw.rect(self.screen, (0, 255, 255), (
-            self.player.rect.x - self.camera_offset[0],
-            self.player.rect.y - self.camera_offset[1],
-            self.player.rect.width,
-            self.player.rect.height
-        ), 2)
+        # pygame.draw.rect(self.screen, (0, 255, 255), (
+        #     self.player.rect.x - self.camera_offset[0],
+        #     self.player.rect.y - self.camera_offset[1],
+        #     self.player.rect.width,
+        #     self.player.rect.height
+        # ), 2)
