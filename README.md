@@ -66,7 +66,7 @@ Trong game Stickman Battle, các thuật toán trí tuệ nhân tạo được s
 
 ---
 ## DEMO
-![Màn hình Start game](https://drive.google.com/file/d/1tmrfYMf8bXFAwjqoaOx9CSzzTHhWYamr/view?usp=drive_link)
+![Màn hình Start game] (https://drive.google.com/file/d/1tmrfYMf8bXFAwjqoaOx9CSzzTHhWYamr/view?usp=drive_link)
 
 ![Màn hình Level 1]
 
