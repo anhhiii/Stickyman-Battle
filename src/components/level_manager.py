@@ -14,9 +14,7 @@ class LevelLogicManager:
         return self.door_unlocked
 
     def check_victory(self, player_rect, door_rect):
-        if self.door_unlocked and player_rect.colliderect(door_rect):
-            print("🎉 Victory! You passed the level!")
-            return True
-        elif not self.door_unlocked and player_rect.colliderect(door_rect):
-            print("Door is locked. Defeat all enemies first!")
-        return False
+        return player_rect.colliderect(door_rect)
+
+    
+

@@ -6,6 +6,8 @@ from src.entities.slime import Slime
 from src.ui.settings_menu import SettingsMenu
 from src.ui.game_over import GameOverScreen
 from src.components.level_manager import LevelLogicManager
+from src.ui.game_victory import GameVictoryScreen
+
 import os
 
 class BattleLevel1(BattleBase):
@@ -101,10 +103,18 @@ class BattleLevel1(BattleBase):
             self.logic_manager.update()
 
             if self.door_pos:
-                door_rect = pygame.Rect(self.door_pos[0], self.door_pos[1], 32, 32)
+                door_rect = pygame.Rect(self.door_pos[0], self.door_pos[1] - 64, 64, 64)
                 player_rect = self.player.rect.move(-self.camera_offset[0], -self.camera_offset[1])
                 if self.logic_manager.check_victory(player_rect, door_rect):
-                    return "win"
+                    victory_screen = GameVictoryScreen(self.screen)
+                    result = victory_screen.run()
+                    if result == "menu":
+                        return "menu"
+                    elif result == "quit":
+                        self.running = False
+                        return "quit"
+
+
                 
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:

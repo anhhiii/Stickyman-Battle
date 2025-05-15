@@ -11,15 +11,17 @@ from src.scenes.battle_level3 import BattleLevel3
 from src.scenes.battle_boss import BattleBoss
 from src.ui.health_bar import HealthBar  
 
+
 def main():
     pygame.init()
     pygame.mixer.init()
     screen = pygame.display.set_mode((800, 608))
     pygame.display.set_caption("STICKY MAN")
 
-    # Khởi tạo thanh máu (góc trên bên trái)
-    player_health = 100  # Giá trị máu ban đầu
-    health_bar = HealthBar(20, 20, 140, 20, player_health)  # x, y, width, height, max_health
+    # Khởi tạo thanh máu và danh sách màn mở khóa
+    player_health = 100
+    unlocked_levels = [1]  # Chỉ mở khóa level 1 ban đầu
+    health_bar = HealthBar(20, 20, 140, 20, player_health)
 
     current_scene = "background"
     while True:
@@ -28,25 +30,48 @@ def main():
             current_scene = background.run()
 
         elif current_scene == "menu":
-            menu_scene = Menu(screen)
+            menu_scene = Menu(screen, unlocked_levels=unlocked_levels)  # Truyền danh sách mở khóa
             current_scene = menu_scene.run()
-        
+
         elif current_scene == "level1":
-            battle = BattleLevel1(screen, health_bar, player_health)  
-            current_scene = battle.run()
+            battle = BattleLevel1(screen, health_bar, player_health)
+            result = battle.run()
+            if result == "menu":
+                if 2 not in unlocked_levels:
+                    unlocked_levels.append(2)  # Mở khóa level 2 sau khi thắng level 1
+                current_scene = "menu"
+            else:
+                current_scene = result
+
         elif current_scene == "level2":
-            battle = BattleLevel2(screen, health_bar, player_health)  
-            current_scene = battle.run()
+            battle = BattleLevel2(screen, health_bar, player_health)
+            result = battle.run()
+            if result == "menu":
+                if 3 not in unlocked_levels:
+                    unlocked_levels.append(3)
+                current_scene = "menu"
+            else:
+                current_scene = result
+
         elif current_scene == "level3":
-            battle = BattleLevel3(screen, health_bar, player_health)  
-            current_scene = battle.run()
+            battle = BattleLevel3(screen, health_bar, player_health)
+            result = battle.run()
+            if result == "menu":
+                if 4 not in unlocked_levels:
+                    unlocked_levels.append(4)
+                current_scene = "menu"
+            else:
+                current_scene = result
+
         elif current_scene == "boss":
-            battle = BattleBoss(screen, health_bar, player_health) 
-            current_scene = battle.run()
-        
+            battle = BattleBoss(screen, health_bar, player_health)
+            result = battle.run()
+            current_scene = result
+
         elif current_scene == "quit":
             pygame.quit()
             sys.exit()
+
 
 if __name__ == "__main__":
     main()
