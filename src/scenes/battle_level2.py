@@ -21,83 +21,63 @@ class BattleLevel2(BattleBase):
         self.player = None
         self.slime_list = []
         self.logic_manager = LevelLogicManager(self.slime_list)
-
         current_dir = os.path.dirname(os.path.abspath(__file__))
         project_root = os.path.dirname(os.path.dirname(current_dir))
         music_path = os.path.join(project_root, 'assets', 'audio', 'music_theme', 'MusicLV2.mp3')
-        
         self.music_manager = MusicManager()
         self.music_manager.play_music(music_path)
-
-        # Khởi tạo các đối tượng từ object layer
         BGDoor_dir = os.path.join(project_root, 'assets', 'backgrounds')
         self.BGDoor = pygame.image.load(os.path.join(BGDoor_dir, "BGDoor.png")).convert_alpha()
         self.BGDoor = pygame.transform.scale(self.BGDoor, (96, 96))
-
         for obj in self.spawn_objects:
             x = int(obj["x"])
             y = int(obj["y"])
             props = obj["properties"]
-            
             if props.get("win") == "yes":
                 self.door_pos = (obj["x"], obj["y"])
-
             if props.get("player") == "yes":
                 self.player = Knight(x, y, scale=0.35, speed=3, battle_base=self)
                 self.player_group = pygame.sprite.Group(self.player)
             if props.get("enemy") == "yes":
                 move_area = pygame.Rect(x - 100, y - 50, 200, 100)
-                slime = Slime(x, y, 1.0, 2, self, move_area=move_area)
-                
+                slime = Slime(x, y, 1.0, 2, self, move_area=move_area, navigation_mode="platform")
                 if len(self.slime_list) == 0:
                     slime.name = "slime_bfs"
                 elif len(self.slime_list) == 1:
+                    slime.name = "slime_greedy"
+                elif len(self.slime_list) == 2:
+                    slime.name = "slime_hill"
+                elif len(self.slime_list) == 3:
+                    slime.name = "slime_backtracking"
+                elif len(self.slime_list) == 4:
+                    slime.name = "slime_q"
+                elif len(self.slime_list) == 5:
                     slime.name = "slime_andor"
-
                 self.slime_list.append(slime)
-
         if not self.player:
             raise ValueError("Không tìm thấy object 'player' trong map!")
-
         self.enemy_group = pygame.sprite.Group(self.slime_list)
         self.moving_left = False
         self.moving_right = False
-
-        # Khởi tạo camera offset
         self.camera_offset = [0, 0]
         self.screen_width = screen.get_width()
         self.screen_height = screen.get_height()
-
-        # Khởi tạo các icon
         icon_dir = os.path.join(project_root, 'assets', 'icons')
         self.settings_icon = pygame.image.load(os.path.join(icon_dir, "settings_icon.png"))
         self.settings_icon = pygame.transform.scale(self.settings_icon, (30, 30))
         self.settings_button = pygame.Rect(750, 10, 30, 30)
-
         self.pause_icon = pygame.image.load(os.path.join(icon_dir, "pause_icon.png"))
         self.pause_icon = pygame.transform.scale(self.pause_icon, (30, 30))
         self.pause_button = pygame.Rect(700, 10, 30, 30)
-
         self.continue_icon = pygame.image.load(os.path.join(icon_dir, "continue_icon.png"))
         self.continue_icon = pygame.transform.scale(self.continue_icon, (30, 30))
         self.continue_button = pygame.Rect(650, 10, 30, 30)
 
-        # Tạo lưới grid một lần duy nhất
-        self.grid = []
-        for row in range(self.map_height):
-            line = []
-            for col in range(self.map_width):
-                tile = self.tile_layers[1][row * self.map_width + col]
-                line.append(1 if tile > 0 else 0)
-            self.grid.append(line)
-
     def run(self):
         clock = pygame.time.Clock()
-        self.prev_health = self.player.health  # Khởi tạo máu ban đầu
-
+        self.prev_health = self.player.health
         while self.running:
             self.logic_manager.update()
-
             if self.door_pos:
                 door_rect = pygame.Rect(self.door_pos[0], self.door_pos[1] - 64, 64, 64)
                 player_rect = self.player.rect.move(-self.camera_offset[0], -self.camera_offset[1])
@@ -105,12 +85,9 @@ class BattleLevel2(BattleBase):
                     victory_screen = GameVictoryScreen(self.screen)
                     result = victory_screen.run()
                     if result == "menu":
-                        return "win"  # báo rõ là đã thắng, không phải chỉ về menu
+                        return "win"
                     elif result == "quit":
                         return "quit"
-
-                
-
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     self.running = False
@@ -164,7 +141,6 @@ class BattleLevel2(BattleBase):
                             return "menu"
                         elif result == "back":
                             continue
-
             if self.player.alive and not self.paused:
                 self.player.move(self.moving_left, self.moving_right)
                 map_height_px = self.map_height * self.tile_height
@@ -172,32 +148,22 @@ class BattleLevel2(BattleBase):
                     self.player.health = 0
                     self.player.check_alive()
                     print("[Knight] Rơi khỏi bản đồ!")
-
-
-                # Cập nhật camera
                 map_width_px = self.map_width * self.tile_width
                 map_height_px = self.map_height * self.tile_height
                 target_x = self.player.rect.centerx - self.screen_width // 2
                 target_y = self.player.rect.centery - self.screen_height // 2
                 self.camera_offset[0] = max(0, min(target_x, map_width_px - self.screen_width))
                 self.camera_offset[1] = max(0, min(target_y, map_height_px - self.screen_height))
-
-                # Nếu máu giảm và chưa trong trạng thái hurt thì kích hoạt
                 if self.player.health < self.prev_health and not self.player.is_hurt:
                     self.player.is_hurt = True
                     self.player.update_action(8)
                     self.player.frame_index = 0
                     print("[Knight] Bị thương!")
-
                 self.prev_health = self.player.health
-
-                # Nếu đang hurt thì không làm gì thêm
                 if self.player.is_hurt:
                     pass
                 else:
-                    # Kiểm tra nếu đang trong animation Attack
                     if self.player.action == 3 and self.player.frame_index < len(self.player.animation_list[3]) - 1:
-                        # Gây sát thương ở frame thứ 2 của Attack
                         if self.player.attack_frame == 2:
                             attack_range = pygame.Rect(
                                 self.player.rect.left - 50 if self.player.flip else self.player.rect.right,
@@ -208,10 +174,9 @@ class BattleLevel2(BattleBase):
                             for slime in self.slime_list:
                                 if slime.alive and attack_range.colliderect(slime.rect):
                                     print(f"Attack range: {attack_range}, Slime rect: {slime.rect}")
-                                    slime.check_alive()  # Chết ngay sau một lần đánh
+                                    slime.check_alive()
                                     print(f"[Slime] {slime.name} đã chết!")
                     else:
-                        # Các hành động khác
                         if self.player.attack and self.player.in_air:
                             self.player.update_action(10)
                         elif self.player.attack:
@@ -231,35 +196,28 @@ class BattleLevel2(BattleBase):
                             self.player.update_action(1)
                         else:
                             self.player.update_action(0)
-
                 self.player.update_animation()
-
-                # Cập nhật slime
-                for slime in self.slime_list[:]:  # Sao chép danh sách để tránh lỗi khi xóa
+                for slime in self.slime_list[:]:
                     if slime.alive:
                         if slime.name == "slime_bfs":
-                            slime.update_bfs(self.player, self.grid, self.margin_data)
+                            slime.update_bfs(self.player)
+                        elif slime.name == "slime_greedy":
+                            slime.update_greedy(self.player)
+                        elif slime.name == "slime_hill":
+                            slime.update_hill_climb(self.player)
+                        elif slime.name == "slime_backtracking":
+                            slime.update_backtracking(self.player)
+                        elif slime.name == "slime_q":
+                            slime.update_q_learning(self.player)
                         elif slime.name == "slime_andor":
-                            slime.update_andor(self.player, self.grid, self.margin_data)
-                        else:
-                            slime.move()
+                            slime.update_andor(self.player)
                         slime.try_attack_player(self.player)
-
-                        if slime.in_air:
-                            slime.update_action(1)
-                        else:
-                            slime.update_action(0)
                     else:
-                        if slime.action != 3:
-                            slime.update_action(3)  # Đảm bảo chuyển sang Death
-                        slime.update_animation()
-                        if slime.frame_index >= len(slime.animation_list[3]) - 1:  # Đã hoàn thành animation Death
+                        if slime.death_animation_complete:
                             self.slime_list.remove(slime)
                             self.enemy_group.remove(slime)
                             print(f"[Slime] {slime.name} đã được xóa!")
-
                     slime.update_animation()
-
             if not self.player.alive:
                 self.player_health = 0
                 self.health_bar.set_health(self.player_health)
@@ -274,50 +232,31 @@ class BattleLevel2(BattleBase):
             else:
                 self.player_health = self.player.health
                 self.health_bar.set_health(self.player_health)
-
             self.draw()
             pygame.display.flip()
             clock.tick(60)
-            print(f"FPS: {clock.get_fps()}")
+            # print(f"FPS: {clock.get_fps()}")  # Bỏ comment nếu cần debug FPS
 
     def draw(self):
         self.screen.fill((0, 0, 0))
-        bg_filename = f"{self.level_name}.jpg"
-        bg_path = os.path.join(self.project_root, "assets", "backgrounds", bg_filename)
-        if os.path.exists(bg_path):
-            bg = pygame.image.load(bg_path).convert()
-            self.screen.blit(bg, (-self.camera_offset[0], -self.camera_offset[1]))
         super().draw(self.camera_offset)
-
         if self.door_pos:
             door_x = self.door_pos[0] - self.camera_offset[0]
             door_y = self.door_pos[1] - self.BGDoor.get_height() - self.camera_offset[1]
-            # pygame.draw.rect(self.screen, (255, 0, 0), pygame.Rect(door_x, door_y, 64, 64), 2)
             self.screen.blit(self.BGDoor, (door_x, door_y))
-
         for sprite in self.player_group:
             flipped_image = pygame.transform.flip(sprite.image, sprite.flip, False)
             self.screen.blit(flipped_image, (sprite.rect.x - self.camera_offset[0], sprite.rect.y - self.camera_offset[1]))
-
         for sprite in self.enemy_group:
-            if sprite.alive or sprite.action == 3:  # Vẽ Slime sống hoặc đang trong trạng thái Death
-                self.screen.blit(sprite.image, (sprite.rect.x - self.camera_offset[0], sprite.rect.y - self.camera_offset[1]))
-
+            if sprite.alive or sprite.action == 3:
+                flipped_image = pygame.transform.flip(sprite.image, sprite.flip, False)
+                self.screen.blit(flipped_image, (sprite.rect.x - self.camera_offset[0], sprite.rect.y - self.camera_offset[1]))
         self.health_bar.draw(self.screen)
-
         self.screen.blit(self.settings_icon, (self.settings_button.x, self.settings_button.y))
         self.screen.blit(self.pause_icon, (self.pause_button.x, self.pause_button.y))
         self.screen.blit(self.continue_icon, (self.continue_button.x, self.continue_button.y))
-
         if self.paused:
             font = pygame.font.SysFont('Arial', 36, bold=True)
             pause_text = font.render("PAUSED", True, (255, 255, 255))
             text_rect = pause_text.get_rect(center=(self.screen_width // 2, self.screen_height // 2))
             self.screen.blit(pause_text, text_rect)
-
-        # pygame.draw.rect(self.screen, (0, 255, 255), (
-        #     self.player.rect.x - self.camera_offset[0],
-        #     self.player.rect.y - self.camera_offset[1],
-        #     self.player.rect.width,
-        #     self.player.rect.height
-        # ), 2)

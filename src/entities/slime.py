@@ -1,10 +1,11 @@
 import pygame
 import os
 from src.ai.algorithms import bfs_path, greedy_path, hill_climb_step, backtracking_path, q_learning_train, q_learning_step, and_or_search_probabilistic
+from src.ai.platform_graph import find_nearest_node
 import random
 
 class Slime(pygame.sprite.Sprite):
-    def __init__(self, x, y, scale, speed, battle_base, move_area=None):
+    def __init__(self, x, y, scale, speed, battle_base, move_area=None, navigation_mode="platform"):
         pygame.sprite.Sprite.__init__(self)
         self.alive = True
         self.speed = speed
@@ -17,7 +18,7 @@ class Slime(pygame.sprite.Sprite):
         self.frame_index = 0
         self.action = 0
         self.update_time = pygame.time.get_ticks()
-        self.health = 30  # Giữ để tương thích, nhưng không dùng
+        self.health = 30
         self.battle_base = battle_base
         self.move_area = move_area
         self.name = "slime_normal"
@@ -27,7 +28,8 @@ class Slime(pygame.sprite.Sprite):
         self.bfs_path = []
         self.path_index = 0
         self.follow_player = False
-        self.last_goal_tile = None
+        self.last_goal_node = None
+        self.navigation_mode = navigation_mode
         self.frame_counts = {
             'Idle': 7,
             'Jump': 6,
@@ -36,11 +38,15 @@ class Slime(pygame.sprite.Sprite):
         }
         self.q_table_trained = False
         self.hill_stuck_counter = 0
-        self.update_counter = 0
         self.is_attacking = False
         self.last_attack_time = 0
         self.attack_cooldown = 2000
-        self.death_animation_complete = False  # Biến mới để theo dõi trạng thái animation Death
+        self.death_animation_complete = False
+        self.platform_nodes = self.battle_base.platform_nodes
+        self.platform_graph = self.battle_base.platform_graph
+        self.jump_strength = -18
+        self.jump_cooldown = 200
+        self.last_jump_time = 0
 
         self.animation_types = ['Idle', 'Jump', 'Hurt', 'Death']
         for animation in self.animation_types:
@@ -57,331 +63,277 @@ class Slime(pygame.sprite.Sprite):
                     img = pygame.image.load(img_path).convert_alpha()
                     img = pygame.transform.scale(img, (int(img.get_width() * scale), int(img.get_height() * scale)))
                     temp_list.append(img)
-            self.animation_list.append(temp_list if temp_list else [pygame.Surface((32, 32))])
+                else:
+                    print(f"[Slime] WARNING: Image not found at {img_path}")
+                    temp_list.append(pygame.Surface((32, 32)))
+            self.animation_list.append(temp_list)
 
         self.image = self.animation_list[self.action][self.frame_index]
         self.rect = self.image.get_rect()
         self.rect.bottomleft = (x, y)
 
-    def _is_target_changed(self, new_goal_tile):
-        if not hasattr(self, 'last_goal_tile'):
-            return True
-        return abs(new_goal_tile[0] - self.last_goal_tile[0]) > 1 or abs(new_goal_tile[1] - self.last_goal_tile[1]) > 1
-    
+    def _is_target_changed(self, new_goal):
+        return self.last_goal_node != new_goal if self.last_goal_node is not None else True
+
+    def try_jump(self):
+        current_time = pygame.time.get_ticks()
+        if not self.in_air and current_time - self.last_jump_time > self.jump_cooldown:
+            self.vel_y = self.jump_strength
+            self.in_air = True
+            self.jump = True
+            self.last_jump_time = current_time
+            self.update_action(1)
+            print(f"[Slime] {self.name} jumped at {self.rect.centerx}, {self.rect.centery}")
+
     def try_attack_player(self, player):
         current_time = pygame.time.get_ticks()
+        if self.rect.colliderect(player.rect) and current_time - getattr(player, 'last_hurt_time', 0) > 1000 and \
+           current_time - self.last_attack_time > self.attack_cooldown:
+            player.health -= 10
+            player.is_hurt = True
+            player.update_action(8)
+            player.last_hurt_time = current_time
+            print(f"[{self.name}] Slime attacked! Knight health: {player.health}")
+            self.last_attack_time = current_time
+            if player.health <= 0:
+                player.check_alive()
 
-        if self.rect.colliderect(player.rect):
-            if current_time - getattr(player, 'last_hurt_time', 0) > 1000 and \
-            current_time - self.last_attack_time > self.attack_cooldown:
-
-                # Gây sát thương
-                player.health -= 10
-                player.is_hurt = True
-                player.update_action(8)  # Hurt animation
-                player.last_hurt_time = current_time
-
-                print(f"[{self.name}] Slime tấn công! Knight còn {player.health} máu")
-
-                self.last_attack_time = current_time
-
-                if player.health <= 0:
-                    player.check_alive()
-
-    def update_bfs(self, player, grid, margin_data):
-        if not self.alive:
-            return
-
-        # Kiểm tra khoảng cách đến người chơi
-        if abs(self.rect.centerx - player.rect.centerx) < 150:
-            self.follow_player = True
-        else:
-            self.follow_player = False
-            self.bfs_path = []
-            self.path_index = 0
-            return
-
-        if self.follow_player:
-            current_tile = (self.rect.centerx // self.battle_base.tile_width,
-                            self.rect.centery // self.battle_base.tile_height)
-            goal_tile = (player.rect.centerx // self.battle_base.tile_width,
-                        player.rect.centery // self.battle_base.tile_height)
-
-            # Kiểm tra tile nằm trong bản đồ trước khi tìm đường
-            if not (0 <= goal_tile[0] < len(grid[0]) and 0 <= goal_tile[1] < len(grid) and
-                    0 <= current_tile[0] < len(grid[0]) and 0 <= current_tile[1] < len(grid)):
-                print(f"[BFS] Knight rơi khỏi bản đồ! goal_tile={goal_tile}, current_tile={current_tile}")
-                self.bfs_path = []
-                return
-
-            if not self.bfs_path or self.path_index >= len(self.bfs_path) or self._is_target_changed(goal_tile):
-                self.bfs_path = bfs_path(current_tile, goal_tile, grid)
-                self.path_index = 0
-                self.last_goal_tile = goal_tile
-
-            if self.bfs_path and self.path_index < len(self.bfs_path):
-                tx, ty = self.bfs_path[self.path_index]
-                target_x = tx * self.battle_base.tile_width + self.battle_base.tile_width // 2
-                if self.move_area and (target_x < self.move_area.left or target_x > self.move_area.right):
-                    return
-
-                if (0 <= ty < self.battle_base.map_height and 0 <= tx < self.battle_base.map_width):
-                    margin_index = ty * self.battle_base.map_width + tx
-                    if margin_index < len(margin_data) and margin_data[margin_index] != 0:
-                        self.direction *= -1
-                        self.rect.x += self.direction * self.speed
-                        print(f"[DEBUG] Slime at {self.rect.centerx}, {self.rect.centery} hit margin at {tx}, {ty}")
-                    else:
-                        if abs(self.rect.centerx - target_x) > self.speed:
-                            if self.rect.centerx < target_x:
-                                self.rect.x += self.speed
-                                self.flip = False
-                                self.direction = 1
-                            else:
-                                self.rect.x -= self.speed
-                                self.flip = True
-                                self.direction = -1
-                            self.check_collision('horizontal', self.speed * self.direction)
-                        else:
-                            self.path_index += 1
-                self.update_action(1 if self.in_air or abs(self.rect.centerx - target_x) > self.speed else 0)
-
-    def update_greedy(self, player, grid, margin_data):
-        if not self.alive:
-            return
-
-        if abs(self.rect.centerx - player.rect.centerx) < 150:
-            self.follow_player = True
-
-        if self.follow_player:
-            current_tile = (self.rect.centerx // self.battle_base.tile_width,
-                            self.rect.centery // self.battle_base.tile_height)
-            goal_tile = (player.rect.centerx // self.battle_base.tile_width,
-                        player.rect.centery // self.battle_base.tile_height)
-
-            if not self.bfs_path or self.path_index >= len(self.bfs_path) or self._is_target_changed(goal_tile):
-                self.bfs_path = greedy_path(current_tile, goal_tile, grid)
-                self.path_index = 0
-                self.last_goal_tile = goal_tile
-
-            if self.bfs_path and self.path_index < len(self.bfs_path):
-                tx, ty = self.bfs_path[self.path_index]
-                target_x = tx * self.battle_base.tile_width
-                if self.move_area and (target_x < self.move_area.left or target_x > self.move_area.right):
-                    return
-
-                if (0 <= ty < self.battle_base.map_height and 0 <= tx < self.battle_base.map_width):
-                    margin_index = ty * self.battle_base.map_width + tx
-                    if margin_index < len(margin_data) and margin_data[margin_index] != 0:
-                        self.direction *= -1
-                        self.rect.x += self.direction * self.speed
-                    else:
-                        if abs(self.rect.centerx - target_x) > 2:
-                            if self.rect.centerx < target_x:
-                                self.rect.x += self.speed
-                                self.flip = False
-                            elif self.rect.centerx > target_x:
-                                self.rect.x -= self.speed
-                                self.flip = True
-                        else:
-                            self.path_index += 1
-
-    def update_hill_climb(self, player, grid, margin_data):
-        if not self.alive:
-            return
-
-        if abs(self.rect.centerx - player.rect.centerx) < 150:
-            self.follow_player = True
-        else:
-            self.follow_player = False
-            return
-
-        if self.follow_player:
-            current_tile = (self.rect.centerx // self.battle_base.tile_width,
-                            self.rect.centery // self.battle_base.tile_height)
-            goal_tile = (player.rect.centerx // self.battle_base.tile_width,
-                        player.rect.centery // self.battle_base.tile_height)
-
-            if not hasattr(self, 'hill_stuck_counter'):
-                self.hill_stuck_counter = 0
-
-            next_tile = hill_climb_step(current_tile, goal_tile, grid)
-            current_h = abs(current_tile[0] - goal_tile[0]) + abs(current_tile[1] - goal_tile[1])
-            next_h = abs(next_tile[0] - goal_tile[0]) + abs(next_tile[1] - goal_tile[1])
-
-            if next_h >= current_h:
-                self.hill_stuck_counter += 1
-            else:
-                self.hill_stuck_counter = 0
-
-            if self.hill_stuck_counter > 10:
-                valid_moves = []
-                for dx, dy in [(-1, 0), (1, 0), (0, -1), (0, 1)]:
-                    nx, ny = current_tile[0] + dx, current_tile[1] + dy
-                    if 0 <= nx < len(grid[0]) and 0 <= ny < len(grid) and grid[ny][nx] == 0:
-                        valid_moves.append((nx, ny))
-                if valid_moves:
-                    next_tile = random.choice(valid_moves)
-                self.hill_stuck_counter = 0
-
-            tx_center = next_tile[0] * self.battle_base.tile_width + self.battle_base.tile_width // 2
-
-            if self.move_area and (tx_center < self.move_area.left or tx_center > self.move_area.right):
-                return
-
-            if abs(self.rect.centerx - tx_center) > self.speed:
-                if self.rect.centerx < tx_center:
-                    self.rect.x += self.speed
-                    self.flip = False
-                    self.direction = 1
-                else:
-                    self.rect.x -= self.speed
-                    self.flip = True
-                    self.direction = -1
-                self.check_collision('horizontal', self.speed * self.direction)
-
-            self.update_action(1 if self.in_air or abs(self.rect.centerx - tx_center) > self.speed else 0)
-
-    def update_backtracking(self, player, grid, margin_data):
-        if not self.alive:
-            return
-
-        if abs(self.rect.centerx - player.rect.centerx) < 150:
-            self.follow_player = True
-        else:
-            self.follow_player = False
-            return
-
-        if self.follow_player:
-            current_tile = (self.rect.centerx // self.battle_base.tile_width,
-                            self.rect.centery // self.battle_base.tile_height)
-            goal_tile = (player.rect.centerx // self.battle_base.tile_width,
-                        player.rect.centery // self.battle_base.tile_height)
-
-            if not self.bfs_path or self.path_index >= len(self.bfs_path):
-                full_path = backtracking_path(current_tile, goal_tile, grid)
-
-                if self.move_area:
-                    filtered_path = []
-                    for (tx, ty) in full_path:
-                        tx_center = tx * self.battle_base.tile_width + self.battle_base.tile_width // 2
-                        if self.move_area.left <= tx_center <= self.move_area.right:
-                            filtered_path.append((tx, ty))
-                    self.bfs_path = filtered_path
-                else:
-                    self.bfs_path = full_path
-
-                self.path_index = 0
-
-            if self.bfs_path and self.path_index < len(self.bfs_path):
-                tx, ty = self.bfs_path[self.path_index]
-                target_x = tx * self.battle_base.tile_width
-
-                if (0 <= ty < self.battle_base.map_height and 0 <= tx < self.battle_base.map_width):
-                    margin_index = ty * self.battle_base.map_width + tx
-                    if margin_index < len(margin_data) and margin_data[margin_index] != 0:
-                        self.direction *= -1
-                        self.rect.x += self.direction * self.speed
-                    else:
-                        if abs(self.rect.centerx - target_x) > 2:
-                            if self.rect.centerx < target_x:
-                                self.rect.x += self.speed
-                                self.flip = False
-                            elif self.rect.centerx > target_x:
-                                self.rect.x -= self.speed
-                                self.flip = True
-                        else:
-                            self.path_index += 1
-
-    def update_q_learning(self, player, grid, margin_data):
-        if not self.alive:
-            return
-
-        if abs(self.rect.centerx - player.rect.centerx) < 150:
-            self.follow_player = True
-        else:
-            self.follow_player = False
-            return
-
-        current_tile = (self.rect.centerx // self.battle_base.tile_width,
-                        self.rect.centery // self.battle_base.tile_height)
-        goal_tile = (player.rect.centerx // self.battle_base.tile_width,
-                    player.rect.centery // self.battle_base.tile_height)
-
-        if not hasattr(self, 'last_goal_tile') or self.last_goal_tile != goal_tile:
-            self.q_table = q_learning_train(grid, current_tile, goal_tile, episodes=100)
-            self.q_table_trained = True
-            self.last_goal_tile = goal_tile
-
-        next_tile = q_learning_step(self.q_table, current_tile)
-        target_x = next_tile[0] * self.battle_base.tile_width + self.battle_base.tile_width // 2
-
-        if self.move_area:
-            if target_x < self.move_area.left or target_x > self.move_area.right:
-                return
-
-        if abs(self.rect.centerx - target_x) > self.speed:
-            if self.rect.centerx < target_x:
-                self.rect.x += self.speed
-                self.flip = False
-                self.direction = 1
-            else:
+    def move_to_node(self, target_x, target_y):
+        slime_x, slime_y = self.rect.center
+        height_diff = slime_y - target_y
+        dist_x = abs(slime_x - target_x)
+        if dist_x > 3:
+            if target_x < slime_x:
                 self.rect.x -= self.speed
                 self.flip = True
                 self.direction = -1
+            else:
+                self.rect.x += self.speed
+                self.flip = False
+                self.direction = 1
             self.check_collision('horizontal', self.speed * self.direction)
+            print(f"[Slime] {self.name} moving to ({target_x}, {target_y}), dist_x={dist_x}")
+            return False, dist_x
+        else:
+            if height_diff > 10 and not self.in_air:
+                self.try_jump()
+            elif height_diff < -20 and not self.in_air:
+                pass
+            else:
+                return True, dist_x
+        return False, dist_x
 
-        self.update_action(1 if self.in_air or abs(self.rect.centerx - target_x) > self.speed else 0)
-
-    def _is_goal_changed(self, new_goal_tile):
-        if self.last_goal_tile is None:
-            return True
-        dx = abs(new_goal_tile[0] - self.last_goal_tile[0])
-        dy = abs(new_goal_tile[1] - self.last_goal_tile[1])
-        return dx > 1 or dy > 1
-
-    def update_andor(self, player, grid, margin_data):
+    def update_bfs(self, player):
         if not self.alive:
             return
-
-        if abs(self.rect.centerx - player.rect.centerx) < 150:
-            self.follow_player = True
+        dist_to_player = ((self.rect.centerx - player.rect.centerx) ** 2 + (self.rect.centery - player.rect.centery) ** 2) ** 0.5
+        self.follow_player = dist_to_player < 500
+        if not self.follow_player:
+            self.bfs_path = []
+            self.path_index = 0
+            self.update_action(0)
+            print(f"[Slime {self.name}] Player too far, stopping, dist={dist_to_player}")
+            return
+        slime_x, slime_y = self.rect.center
+        knight_x, knight_y = player.rect.center
+        slime_node = find_nearest_node(slime_x, slime_y, self.platform_nodes)
+        knight_node = find_nearest_node(knight_x, knight_y, self.platform_nodes)
+        if slime_node is None or knight_node is None:
+            print(f"[Platform BFS] Cannot find nodes: slime_node={slime_node}, knight_node={knight_node}")
+            self.update_action(0)
+            return
+        print(f"[Slime {self.name}] Slime node: {slime_node}, Knight node: {knight_node}")
+        if not self.bfs_path or self.path_index >= len(self.bfs_path) or self._is_target_changed(knight_node):
+            self.bfs_path = bfs_path(slime_node, knight_node, self.platform_graph)
+            self.path_index = 0
+            self.last_goal_node = knight_node
+            print(f"[Slime {self.name}] BFS path: {self.bfs_path}")
+        if self.bfs_path and self.path_index < len(self.bfs_path):
+            next_node_idx = self.bfs_path[self.path_index]
+            next_node = self.platform_nodes[next_node_idx]
+            target_x, target_y = next_node['center']
+            reached, dist_x = self.move_to_node(target_x, target_y)
+            if reached:
+                self.path_index += 1
+                print(f"[Slime {self.name}] Reached node {next_node_idx}, moving to next")
+            self.update_action(1 if self.in_air or dist_x > 3 else 0)
         else:
-            self.follow_player = False
+            print(f"[Slime {self.name}] No valid BFS path or path completed")
+            self.update_action(0)
+        self.try_attack_player(player)
+
+    def update_greedy(self, player):
+        if not self.alive:
+            return
+        dist_to_player = ((self.rect.centerx - player.rect.centerx) ** 2 + (self.rect.centery - player.rect.centery) ** 2) ** 0.5
+        self.follow_player = dist_to_player < 500
+        if not self.follow_player:
+            self.bfs_path = []
+            self.path_index = 0
+            self.update_action(0)
+            print(f"[Slime {self.name}] Player too far, stopping, dist={dist_to_player}")
+            return
+        slime_x, slime_y = self.rect.center
+        knight_x, knight_y = player.rect.center
+        slime_node = find_nearest_node(slime_x, slime_y, self.platform_nodes)
+        knight_node = find_nearest_node(knight_x, knight_y, self.platform_nodes)
+        if slime_node is None or knight_node is None:
+            print(f"[Platform Greedy] Cannot find nodes: slime_node={slime_node}, knight_node={knight_node}")
+            self.update_action(0)
+            return
+        print(f"[Slime {self.name}] Slime node: {slime_node}, Knight node: {knight_node}")
+        if not self.bfs_path or self.path_index >= len(self.bfs_path) or self._is_target_changed(knight_node):
+            self.bfs_path = greedy_path(slime_node, knight_node, self.platform_graph, self.platform_nodes)
+            self.path_index = 0
+            self.last_goal_node = knight_node
+            print(f"[Slime {self.name}] Greedy path: {self.bfs_path}")
+        if self.bfs_path and self.path_index < len(self.bfs_path):
+            next_node_idx = self.bfs_path[self.path_index]
+            next_node = self.platform_nodes[next_node_idx]
+            target_x, target_y = next_node['center']
+            reached, dist_x = self.move_to_node(target_x, target_y)
+            if reached:
+                self.path_index += 1
+                print(f"[Slime {self.name}] Reached node {next_node_idx}, moving to next")
+            self.update_action(1 if self.in_air or dist_x > 3 else 0)
+        else:
+            print(f"[Slime {self.name}] No valid Greedy path or path completed")
+            self.update_action(0)
+        self.try_attack_player(player)
+
+    def update_hill_climb(self, player):
+        if not self.alive:
+            return
+        dist_to_player = ((self.rect.centerx - player.rect.centerx) ** 2 + (self.rect.centery - player.rect.centery) ** 2) ** 0.5
+        self.follow_player = dist_to_player < 500
+        if not self.follow_player:
+            self.update_action(0)
+            print(f"[Slime {self.name}] Player too far, stopping, dist={dist_to_player}")
+            return
+        slime_x, slime_y = self.rect.center
+        knight_x, knight_y = player.rect.center
+        slime_node = find_nearest_node(slime_x, slime_y, self.platform_nodes)
+        knight_node = find_nearest_node(knight_x, knight_y, self.platform_nodes)
+        if slime_node is None or knight_node is None:
+            print(f"[Platform Hill Climb] Cannot find nodes: slime_node={slime_node}, knight_node={knight_node}")
+            self.update_action(0)
+            return
+        print(f"[Slime {self.name}] Slime node: {slime_node}, Knight node: {knight_node}")
+        next_node = hill_climb_step(slime_node, knight_node, self.platform_graph, self.platform_nodes)
+        next_node_data = self.platform_nodes[next_node]
+        target_x, target_y = next_node_data['center']
+        reached, dist_x = self.move_to_node(target_x, target_y)
+        self.update_action(1 if self.in_air or dist_x > 3 else 0)
+        self.try_attack_player(player)
+
+    def update_backtracking(self, player):
+        if not self.alive:
+            return
+        dist_to_player = ((self.rect.centerx - player.rect.centerx) ** 2 + (self.rect.centery - player.rect.centery) ** 2) ** 0.5
+        self.follow_player = dist_to_player < 500
+        if not self.follow_player:
+            self.bfs_path = []
+            self.path_index = 0
+            self.update_action(0)
+            print(f"[Slime {self.name}] Player too far, stopping, dist={dist_to_player}")
+            return
+        slime_x, slime_y = self.rect.center
+        knight_x, knight_y = player.rect.center
+        slime_node = find_nearest_node(slime_x, slime_y, self.platform_nodes)
+        knight_node = find_nearest_node(knight_x, knight_y, self.platform_nodes)
+        if slime_node is None or knight_node is None:
+            print(f"[Platform Backtracking] Cannot find nodes: slime_node={slime_node}, knight_node={knight_node}")
+            self.update_action(0)
+            return
+        print(f"[Slime {self.name}] Slime node: {slime_node}, Knight node: {knight_node}")
+        if not self.bfs_path or self.path_index >= len(self.bfs_path) or self._is_target_changed(knight_node):
+            self.bfs_path = backtracking_path(slime_node, knight_node, self.platform_graph, self.platform_nodes)
+            self.path_index = 0
+            self.last_goal_node = knight_node
+            print(f"[Slime {self.name}] Backtracking path: {self.bfs_path}")
+        if self.bfs_path and self.path_index < len(self.bfs_path):
+            next_node_idx = self.bfs_path[self.path_index]
+            next_node = self.platform_nodes[next_node_idx]
+            target_x, target_y = next_node['center']
+            reached, dist_x = self.move_to_node(target_x, target_y)
+            if reached:
+                self.path_index += 1
+                print(f"[Slime {self.name}] Reached node {next_node_idx}, moving to next")
+            self.update_action(1 if self.in_air or dist_x > 3 else 0)
+        else:
+            print(f"[Slime {self.name}] No valid Backtracking path or path completed")
+            self.update_action(0)
+        self.try_attack_player(player)
+
+    def update_q_learning(self, player):
+        if not self.alive:
+            return
+        dist_to_player = ((self.rect.centerx - player.rect.centerx) ** 2 + (self.rect.centery - player.rect.centery) ** 2) ** 0.5
+        self.follow_player = dist_to_player < 500
+        if not self.follow_player:
+            self.q_table = None
+            self.update_action(0)
+            print(f"[Slime {self.name}] Player too far, stopping, dist={dist_to_player}")
+            return
+        slime_x, slime_y = self.rect.center
+        knight_x, knight_y = player.rect.center
+        slime_node = find_nearest_node(slime_x, slime_y, self.platform_nodes)
+        knight_node = find_nearest_node(knight_x, knight_y, self.platform_nodes)
+        if slime_node is None or knight_node is None:
+            print(f"[Platform Q-Learning] Cannot find nodes: slime_node={slime_node}, knight_node={knight_node}")
+            self.update_action(0)
+            return
+        print(f"[Slime {self.name}] Slime node: {slime_node}, Knight node: {knight_node}")
+        if not self.q_table or self._is_target_changed(knight_node):
+            self.q_table = q_learning_train(self.platform_graph, slime_node, knight_node, nodes=self.platform_nodes)
+            self.q_table_trained = True
+            self.last_goal_node = knight_node
+            print(f"[Slime {self.name}] Q-table trained for goal {knight_node}")
+        next_node = q_learning_step(self.q_table, slime_node)
+        next_node_data = self.platform_nodes[next_node]
+        target_x, target_y = next_node_data['center']
+        reached, dist_x = self.move_to_node(target_x, target_y)
+        self.update_action(1 if self.in_air or dist_x > 3 else 0)
+        self.try_attack_player(player)
+
+    def update_andor(self, player):
+        if not self.alive:
+            return
+        dist_to_player = ((self.rect.centerx - player.rect.centerx) ** 2 + (self.rect.centery - player.rect.centery) ** 2) ** 0.5
+        self.follow_player = dist_to_player < 500
+        if not self.follow_player:
             self.andor_path = []
             self.andor_index = 0
+            self.update_action(0)
+            print(f"[Slime {self.name}] Player too far, stopping, dist={dist_to_player}")
             return
-
-        if self.follow_player:
-            current_tile = (self.rect.centerx // self.battle_base.tile_width,
-                            self.rect.centery // self.battle_base.tile_height)
-            goal_tile = (player.rect.centerx // self.battle_base.tile_width,
-                        player.rect.centery // self.battle_base.tile_height)
-
-            if not self.andor_path or self.andor_index >= len(self.andor_path) or self._is_goal_changed(goal_tile):
-                self.andor_path = and_or_search_probabilistic(current_tile, goal_tile, grid)
-                self.andor_index = 0
-                self.last_goal_tile = goal_tile
-
-            if self.andor_path and self.andor_index < len(self.andor_path):
-                next_tile = self.andor_path[self.andor_index]
-                target_x = next_tile[0] * self.battle_base.tile_width + self.battle_base.tile_width // 2
-
-                if self.move_area and (target_x < self.move_area.left or target_x > self.move_area.right):
-                    return
-
-                if abs(self.rect.centerx - target_x) > self.speed:
-                    if self.rect.centerx < target_x:
-                        self.rect.x += self.speed
-                        self.flip = False
-                    else:
-                        self.rect.x -= self.speed
-                        self.flip = True
-                    self.check_collision('horizontal', self.speed * self.direction)
-                else:
-                    self.andor_index += 1
-
-            self.update_action(1 if self.in_air or self.andor_index < len(self.andor_path) else 0)
+        slime_x, slime_y = self.rect.center
+        knight_x, knight_y = player.rect.center
+        slime_node = find_nearest_node(slime_x, slime_y, self.platform_nodes)
+        knight_node = find_nearest_node(knight_x, knight_y, self.platform_nodes)
+        if slime_node is None or knight_node is None:
+            print(f"[Platform AND-OR] Cannot find nodes: slime_node={slime_node}, knight_node={knight_node}")
+            self.update_action(0)
+            return
+        print(f"[Slime {self.name}] Slime node: {slime_node}, Knight node: {knight_node}")
+        if not self.andor_path or self.andor_index >= len(self.andor_path) or self._is_target_changed(knight_node):
+            self.andor_path = and_or_search_probabilistic(slime_node, knight_node, self.platform_graph, self.platform_nodes)
+            self.andor_index = 0
+            self.last_goal_node = knight_node
+            print(f"[Slime {self.name}] AND-OR path: {self.andor_path}")
+        if self.andor_path and self.andor_index < len(self.andor_path):
+            next_node_idx = self.andor_path[self.andor_index]
+            next_node = self.platform_nodes[next_node_idx]
+            target_x, target_y = next_node['center']
+            reached, dist_x = self.move_to_node(target_x, target_y)
+            if reached:
+                self.andor_index += 1
+                print(f"[Slime {self.name}] Reached node {next_node_idx}, moving to next")
+            self.update_action(1 if self.in_air or dist_x > 3 else 0)
+        else:
+            print(f"[Slime {self.name}] No valid AND-OR path or path completed")
+            self.update_action(0)
+        self.try_attack_player(player)
 
     def move(self):
         if not self.alive:
@@ -414,8 +366,8 @@ class Slime(pygame.sprite.Sprite):
         if self.rect.top < 0:
             self.rect.top = 0
             self.vel_y = 0
-        if self.rect.bottom > 600:
-            self.rect.bottom = 600
+        if self.rect.bottom > 608:
+            self.rect.bottom = 608
             self.vel_y = 0
             self.in_air = False
 
@@ -456,9 +408,9 @@ class Slime(pygame.sprite.Sprite):
             self.update_time = pygame.time.get_ticks()
             self.frame_index += 1
             if self.frame_index >= len(self.animation_list[self.action]):
-                if self.action == 3:  # Death
+                if self.action == 3:
                     self.frame_index = len(self.animation_list[self.action]) - 1
-                    self.death_animation_complete = True  # Đánh dấu animation Death hoàn thành
+                    self.death_animation_complete = True
                     print(f"[Slime] {self.name} completed Death animation")
                 else:
                     self.frame_index = 0
@@ -469,17 +421,17 @@ class Slime(pygame.sprite.Sprite):
             self.action = new_action
             self.frame_index = 0
             self.update_time = pygame.time.get_ticks()
-            self.death_animation_complete = False  # Reset khi chuyển hành động
+            self.death_animation_complete = False
             print(f"[Slime] {self.name} updated action to {new_action}")
 
     def check_alive(self):
         self.health = 0
         self.speed = 0
         self.alive = False
-        self.update_action(3)  # Death
+        self.update_action(3)
         print(f"[Slime] {self.name} triggered check_alive, switching to Death")
 
     def draw(self, screen):
-        if self.alive or self.action == 3:  # Vẽ cả khi đang trong trạng thái Death
+        if self.alive or self.action == 3:
             screen.blit(pygame.transform.flip(self.image, self.flip, False), self.rect)
             print(f"[Slime] {self.name} drawn at {self.rect.x}, {self.rect.y}, action={self.action}")

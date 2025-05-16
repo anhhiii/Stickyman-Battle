@@ -3,7 +3,8 @@ import os
 import base64
 import zlib
 import xml.etree.ElementTree as ET
-import pytmx  # Thư viện để xử lý tmx files
+from src.ai.platform_graph import PlatformGraph
+import pytmx
 
 class BattleBase:
     def __init__(self, screen, level_name):
@@ -101,6 +102,18 @@ class BattleBase:
                     self.spawn_objects.append(obj_data)
 
             self.object_layers.append(objects)
+            # 🔁 Tạo node sau khi đã gom xong spawn_objects
+            print(f"[BattleBase] Final spawn_objects: {self.spawn_objects}")
+            tmx_path = os.path.join(project_root, "levels", f"{level_name}.tmx")
+            self.tmx_data = pytmx.load_pygame(tmx_path)
+
+            self.platform_graph_object = PlatformGraph()
+            self.platform_graph_object.build_platform_graph(self.tmx_data)
+
+            # Lưu các node và edges để slime dùng
+            self.platform_nodes = self.platform_graph_object.nodes
+            self.platform_graph = self.platform_graph_object.edges
+
 
     def load_tiles(self):
         self.tiles = {}
