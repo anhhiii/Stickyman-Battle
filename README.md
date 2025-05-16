@@ -78,11 +78,17 @@ Trong game Stickman Battle, các thuật toán trí tuệ nhân tạo được s
 - Màn hình Level 1 <br>
 ![Màn hình Level 1](https://drive.google.com/uc?export=view&id=1N6b_rr1CJldaqouGwajteCOM0-r5JoFb)
 
+- Slime phát hiện nhân vật và truy đuổi <br>
+![Slime phát hiện nhân vật và truy đuổi](https://drive.google.com/uc?export=view&id=12g5ArVkgawkH8rNpB4f9-TYcIwpSjDPf)
+
 - Màn hình Game over <br>
 ![Màn hình Game over](https://drive.google.com/uc?export=view&id=1eY63pPhHLE09zdcsVAv_lI3yYsekZYe5)
 
-- Màn hình Win game <br>
-![Màn hình Win game](https://drive.google.com/uc?export=view&id=1L7dykpLmH6X-8GgWjtG8ZcDB4yU_7OQF)
+- Nhân vật có thể đánh Slime và Màn hình Win game <br>
+![Màn hình Win game](https://drive.google.com/uc?export=view&id=1P5migqDXAZ7LuUtNIuPx5sMyAq3CPsu6)
+
+- Sau khi Win Level 1 sẽ mở khóa Level 2 <br>
+![Sau khi Win Level 1 sẽ mở khóa Level 2](https://drive.google.com/uc?export=view&id=1_Ig63oGLjytUmCkh6roRyJSOMZG_38Cm)
 
 ---
 ## Kết quả và đánh giá
