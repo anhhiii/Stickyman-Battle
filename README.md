@@ -88,7 +88,7 @@ Trong game Stickman Battle, các thuật toán trí tuệ nhân tạo được s
 ![Màn hình Win game](https://drive.google.com/uc?export=view&id=1qTmS9K0h1CVkPTgfiAXGvsZnxGhkakYy)
 
 - Sau khi Win Level 1 sẽ mở khóa Level 2 <br>
-![Sau khi Win Level 1 sẽ mở khóa Level 2](https://drive.google.com/uc?export=view&id=1_Ig63oGLjytUmCkh6roRyJSOMZG_38Cm)
+![Sau khi Win Level 1 sẽ mở khóa Level 2](https://drive.google.com/uc?export=view&id=1Us4qlKKgbdlshniS9m-ce5xYkg6VzPrn)
 
 ---
 ## Kết quả và đánh giá
