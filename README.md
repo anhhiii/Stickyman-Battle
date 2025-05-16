@@ -40,11 +40,17 @@ Trong game Stickman Battle, các thuật toán trí tuệ nhân tạo được s
 6. **And-Or Search**  
    Tìm kiếm dạng cây quyết định, dùng trong môi trường phức tạp, đảm bảo không bỏ sót lựa chọn.
   ** 
-- BFS là lựa chọn ưu việt khi cần đảm bảo tính chính xác và toàn diện trong việc tìm đường, nhưng kém hiệu quả khi không gian trạng thái lớn hoặc có trọng số đa dạng.
-- Q-Learning mang lại khả năng học hỏi và thích nghi, phù hợp với môi trường chiến đấu biến đổi và tăng tính đa dạng hành vi.
-- Greedy Search cung cấp phản ứng nhanh, phù hợp các tình huống yêu cầu tốc độ hơn độ chính xác.
-- Backtracking và And-Or Search thích hợp cho các bài toán ra quyết định phức tạp, xử lý đa nhánh và nhiều điều kiện.
-- Hill Climbing là công cụ hiệu quả cho các quyết định tối ưu cục bộ, nhanh nhưng cần kết hợp với các thuật toán khác để tránh mắc kẹt.
+## So sánh các thuật toán AI trong game
+
+| Thuật toán       | Ưu điểm chính                                                                                         | Nhược điểm chính                                                                 | Ứng dụng phù hợp trong game                          | Hiệu suất & Độ phức tạp                          | Ghi chú về mô hình xác suất 70:30 (Uncertainty)                                  |
+|------------------|-------------------------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------|------------------------------------------------------|--------------------------------------------------|-------------------------------------------------------------------------------------|
+| **BFS**          | - Tìm đường đi ngắn nhất<br>- Khám phá toàn diện, không bỏ sót trạng thái                           | - Tốn bộ nhớ và thời gian khi không gian trạng thái lớn                         | Truy đuổi, di chuyển quái vật Slime theo cách chính xác | Thời gian: O(V+E)<br>Độ sâu: O(b^d), b = branching, d = depth sâu | Không thích hợp môi trường xác suất, chỉ tốt cho trạng thái hiện tại             |
+| **Q-Learning**   | - Học từ trải nghiệm, tối ưu<br>- Tăng tính đa dạng và linh hoạt hành vi                             | - Cần nhiều thời gian học, điều chỉnh tham số khó                                | Học chiến thuật chiến đấu, ra quyết định vũ khí       | Thời gian học lâu, hiệu suất phụ thuộc tập huấn | Có thể mở rộng thành mô hình xác suất (MDP) nhưng học trực tiếp                  |
+| **Greedy Search**| - Xử lý nhanh, đơn giản<br>- Triển khai dễ<br>- Dễ rơi vào cực bộ                                     | - Không đảm bảo tối ưu toàn cục, dễ kẹt tại cực bộ                                | Phản ứng nhanh trong tình huống khẩn cấp             | Thời gian thấp, độ phức tạp thấp                | Không tốt với môi trường xác suất, không phải thuật toán heuristic               |
+| **Backtracking** | - Toàn diện, kiểm tra mọi lựa chọn<br>- Linh hoạt nếu ràng buộc chính xác                            | - Tiêu tốn thời gian, xử lý chậm                                                 | Tìm chuỗi hành động logic, chiến thuật phức tạp       | Thời gian tối đa O(b^d) hoặc O(d*d)             | Nếu định nghĩa ràng buộc theo xác suất → chạy không đúng hoặc chậm               |
+| **And-Or Search**| - Mô hình hóa chiến lược ra quyết định<br>- Tăng tính linh hoạt hành vi                              | - Phức tạp, tốn tài nguyên tính toán                                             | Xây dựng hệ thống phối hợp hành động chiến lược đa dạng | Thời gian và độ phức tạp cao, phụ thuộc cấu trúc cây | Có thể kết hợp mô hình xác suất:<br>70:30 để phân nhánh theo xác suất:<br>- 70% chọn `And`<br>- 30% rẽ nhánh không xác |
+| **Hill Climbing**| - Đơn giản, nhanh chóng<br>- Tối ưu nhanh nếu gần cực đại                                             | - Dễ bị kẹt tại cực bộ<br>- Không đảm bảo tối ưu toàn cục                         | Tối ưu các hành động nhỏ, lựa chọn bước đi chiến thuật | Thời gian thấp, độ phức tạp thấp                | Không mô hình tốt cho xác suất, không đảm bảo tính khám phá toàn cục             |
+
 
 ---
 
