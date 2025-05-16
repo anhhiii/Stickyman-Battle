@@ -38,31 +38,36 @@ def main():
             result = battle.run()
             if result == "win":
                 if 2 not in unlocked_levels:
-                    unlocked_levels.append(2)  # Chỉ mở khóa nếu thật sự thắng
+                    unlocked_levels.append(2)
                 current_scene = "menu"
-
             elif result == "menu":
                 current_scene = "menu"
-
-
+            elif result == "quit":
+                current_scene = "quit"
 
         elif current_scene == "level2":
             battle = BattleLevel2(screen, health_bar, player_health)
             result = battle.run()
-            if result == "menu":
+            if result == "win":
                 if 3 not in unlocked_levels:
                     unlocked_levels.append(3)
                 current_scene = "menu"
-            else:
-                current_scene = result
+            elif result == "menu":
+                current_scene = "menu"
+            elif result == "quit":
+                current_scene = "quit"
 
         elif current_scene == "level3":
             battle = BattleLevel3(screen, health_bar, player_health)
             result = battle.run()
-            if result == "menu":
+            if result == "win":
                 if 4 not in unlocked_levels:
                     unlocked_levels.append(4)
                 current_scene = "menu"
+            elif result == "menu":
+                current_scene = "menu"
+            elif result == "quit":
+                current_scene = "quit"
             else:
                 current_scene = result
 

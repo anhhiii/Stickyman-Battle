@@ -1,6 +1,6 @@
 import pygame
 import os
-from src.ai.algorithms import bfs_path, greedy_path, hill_climb_step, backtracking_path, q_learning_train, q_learning_step, and_or_search
+from src.ai.algorithms import bfs_path, greedy_path, hill_climb_step, backtracking_path, q_learning_train, q_learning_step, and_or_search_probabilistic
 import random
 
 class Slime(pygame.sprite.Sprite):
@@ -359,7 +359,7 @@ class Slime(pygame.sprite.Sprite):
                         player.rect.centery // self.battle_base.tile_height)
 
             if not self.andor_path or self.andor_index >= len(self.andor_path) or self._is_goal_changed(goal_tile):
-                self.andor_path = and_or_search(current_tile, goal_tile, grid)
+                self.andor_path = and_or_search_probabilistic(current_tile, goal_tile, grid)
                 self.andor_index = 0
                 self.last_goal_tile = goal_tile
 

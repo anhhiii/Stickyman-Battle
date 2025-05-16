@@ -163,44 +163,99 @@ def q_learning_step(q_table, current):
     best_action = max(q_table[current], key=q_table[current].get)
     return (current[0] + best_action[0], current[1] + best_action[1])
 
-def and_or_search(start, goal, grid):
+def and_or_search_probabilistic(start, goal, grid):
     rows, cols = len(grid), len(grid[0])
-    explored = set()  # Tập hợp các trạng thái đã thăm
+    explored = set()
     path = []
 
+    def successors(state, action):
+        """Trả về các kết quả có thể xảy ra với xác suất"""
+        x, y = state
+        dx, dy = action
+
+        intended = (x + dx, y + dy)
+        side = (x + dy, y + dx)  # lệch hướng (đơn giản hóa)
+
+        results = []
+        for (nx, ny), prob in [(intended, 0.7), (side, 0.3)]:
+            if 0 <= nx < cols and 0 <= ny < rows and grid[ny][nx] == 0:
+                results.append(((nx, ny), prob))
+        return results
+
     def search(state, current_path):
-        # Điều kiện dừng: nếu đã đến mục tiêu
         if state == goal:
             path.append(state)
             return True
-        
-        # Nếu trạng thái đã được thăm, bỏ qua để tránh vòng lặp
         if state in explored:
             return False
-        
-        # Thêm trạng thái vào tập đã thăm
         explored.add(state)
-        
-        # Thêm trạng thái vào đường đi hiện tại
         current_path.append(state)
-        
-        # Thử tất cả các hành động có thể
+
         for action in [(-1, 0), (1, 0), (0, -1), (0, 1)]:
-            next_state = (state[0] + action[0], state[1] + action[1])
-            # Kiểm tra tính hợp lệ của trạng thái tiếp theo
-            if (0 <= next_state[0] < cols and 0 <= next_state[1] < rows and 
-                grid[next_state[1]][next_state[0]] == 0 and 
-                next_state not in current_path):  # Tránh chu trình
-                if search(next_state, current_path):
-                    path.append(next_state)
-                    return True
-        
-        # Loại bỏ trạng thái khỏi đường đi hiện tại nếu không tìm thấy đường
+            outcomes = successors(state, action)
+
+            if not outcomes:
+                continue
+
+            all_success = True
+            for (next_state, _) in outcomes:
+                if next_state in current_path:
+                    continue
+                if not search(next_state, current_path.copy()):
+                    all_success = False
+                    break
+
+            if all_success:
+                path.append(state)
+                return True
+
         current_path.pop()
         return False
 
-    # Gọi hàm tìm kiếm từ trạng thái bắt đầu
     if search(start, []):
         path.reverse()
         return path
-    return []  # Trả về danh sách rỗng nếu không tìm thấy đường đi
+    return []
+
+
+# def and_or_search(start, goal, grid):
+#     rows, cols = len(grid), len(grid[0])
+#     explored = set()  # Tập hợp các trạng thái đã thăm
+#     path = []
+
+#     def search(state, current_path):
+#         # Điều kiện dừng: nếu đã đến mục tiêu
+#         if state == goal:
+#             path.append(state)
+#             return True
+        
+#         # Nếu trạng thái đã được thăm, bỏ qua để tránh vòng lặp
+#         if state in explored:
+#             return False
+        
+#         # Thêm trạng thái vào tập đã thăm
+#         explored.add(state)
+        
+#         # Thêm trạng thái vào đường đi hiện tại
+#         current_path.append(state)
+        
+#         # Thử tất cả các hành động có thể
+#         for action in [(-1, 0), (1, 0), (0, -1), (0, 1)]:
+#             next_state = (state[0] + action[0], state[1] + action[1])
+#             # Kiểm tra tính hợp lệ của trạng thái tiếp theo
+#             if (0 <= next_state[0] < cols and 0 <= next_state[1] < rows and 
+#                 grid[next_state[1]][next_state[0]] == 0 and 
+#                 next_state not in current_path):  # Tránh chu trình
+#                 if search(next_state, current_path):
+#                     path.append(next_state)
+#                     return True
+        
+#         # Loại bỏ trạng thái khỏi đường đi hiện tại nếu không tìm thấy đường
+#         current_path.pop()
+#         return False
+
+#     # Gọi hàm tìm kiếm từ trạng thái bắt đầu
+#     if search(start, []):
+#         path.reverse()
+#         return path
+#     return []  # Trả về danh sách rỗng nếu không tìm thấy đường đi

@@ -153,12 +153,10 @@ class Menu:
                         for i, rect in enumerate(self.buttons):
                             if rect.collidepoint(event.pos):
                                 if self.levels[i]["unlocked"]:
-                                    if self.levels[i]["id"] == 1:
-                                        return "level1"
-                                    else:
-                                        print(f"Bắt đầu màn {self.levels[i]['id']}")
+                                    return f"level{self.levels[i]['id']}"  # ✅ Trả về chuỗi như "level2"
                                 else:
                                     print("Màn này chưa mở!")
+
 
             self.draw()
             pygame.display.flip()

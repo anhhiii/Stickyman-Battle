@@ -21,6 +21,10 @@ class BattleBase:
 
         self.load_level(level_name)
         self.load_tiles()
+        current_dir = os.path.dirname(os.path.abspath(__file__))
+        self.project_root = os.path.dirname(os.path.dirname(current_dir))
+
+        
 
     def load_level(self, level_name):
         current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -144,6 +148,11 @@ class BattleBase:
 
     def draw(self, camera_offset=[0, 0]):
         self.screen.fill((0, 0, 0))  # Xóa màn hình
+        bg_filename = f"{self.level_name}.jpg"
+        bg_path = os.path.join(self.project_root, "assets", "backgrounds", bg_filename)
+        if os.path.exists(bg_path):
+            bg = pygame.image.load(bg_path).convert()
+            self.screen.blit(bg, (-camera_offset[0], -camera_offset[1]))
 
         for layer_idx, layer in enumerate(self.tile_layers):
             for idx, tile in enumerate(layer):
