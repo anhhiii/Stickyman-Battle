@@ -116,8 +116,11 @@ Trong game Stickman Battle, các thuật toán trí tuệ nhân tạo được s
  - [StickMan Game Development Series YouTube Playlist](https://www.youtube.com/playlist?list=PLjcN1EyupaQm20hlUE11y9y8EY2aXLpnv)
 
 ---
-## NHÓM SINH VIÊN THỰC HIỆN: NHÓM 06
- - Nguyễn Thanh Khang	- 23110237
- - Đoàn Thị Thu Trang	- 23110347
- - Nguyễn Tấn Yên	- 23110369
+## Tác giả
+ - Giảng viên hướng dẫn: TS. Phan Thị Huyền Trang
+ - Nhóm SV thực hiện: Nhóm 06
+   - Nguyễn Thanh Khang	- 23110237
+   - Đoàn Thị Thu Trang	- 23110347
+   - Nguyễn Tấn Yên	- 23110369
+ - Mã lớp học: ARIN330585_04 
 
